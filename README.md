@@ -7,8 +7,8 @@ analysis. It acts as an interface to the popular [tifffile](https://www.lfd.uci.
 [xarray](http://xarray.pydata.org) DataArrays as well as [numpy](https://www.numpy.org)-compatible data structures.
 
 To maximize compatibility with third-party software, the images are written in standard-compliant fashion, with minimal
-metadata and in TZCYX channel order. In particular, a minimal subset of the OME-TIFF standard is supported, enabling the
-naming of channels.
+metadata and in TZCYX channel order. In particular, a minimal (but extensible) subset of the OME-TIFF standard is
+supported, enabling the naming of channels.
 
 ## Installation
 
@@ -19,7 +19,7 @@ Install from pypi:
 
 ## Usage
 
-The package provides one single function:
+The package provides the following main function for writing TIFF files:
 
 ```python3
 to_tiff(img, file, image_name=None, channel_names=None, image_date=None,
@@ -30,6 +30,8 @@ to_tiff(img, file, image_name=None, channel_names=None, image_date=None,
 
 Documentation of the function parameters is available via Python's internal help system: `help(xtiff.to_tiff)`
 
+In addition, the function `get_ome_xml()` is provided as the default OME-XML-generating function.
+
 ## FAQ
 
 _Why should I care about TIFF? I use Zarr/NetCDF/whatever._
@@ -37,7 +39,7 @@ _Why should I care about TIFF? I use Zarr/NetCDF/whatever._
 That's good! TIFF is an old and complex file format, has many disadvantages and is impractical for storing large images.
 However, it also remains one of the most widely used scientific image formats and is (at least partially) supported by
 many popular tools, such as ImageJ. With xtiff, you can continue to store your images in your favorite file format,
-while having the opportunity to easily convert them to a format that can be read by (almost) any tool if needed.
+while having the opportunity to easily convert them to a format that can be read by (almost) any tool.
 
 _Why can't I use the tifffile package directly?_
 
@@ -49,7 +51,10 @@ minimum.
 
 ## Change log
 
-2019-12-12 v0.1.0 - Initial release
+2019-12-12 v0.1.0 - Initial release  
+2019-12-12 v0.1.1 - Documentation corrections  
+2019-12-12 v0.1.2 - Documentation corrections  
+2019-12-12 v0.2.0 - Expose OME-XML to user
 
 ## License
 

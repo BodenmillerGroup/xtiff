@@ -1,10 +1,14 @@
-from typing import Optional, Sequence, Union
+from io import BytesIO
+from typing import Optional, Sequence, Union, Callable
 
 import numpy as np
 import os
+import re
+import string
 import sys
 import tifffile
 import warnings
+import xml.etree.ElementTree as ET
 
 from datetime import datetime
 from enum import Enum
@@ -14,25 +18,6 @@ try:
     import xarray as xr
 except ImportError:
     xr = None
-
-OME_XML_FILE_PATH = os.path.join(os.path.dirname(__file__), 'ome.xml')
-OME_CHANNEL_XML_FMT = '<Channel ID="Channel:0:{id:d}" SamplesPerPixel="{samples_per_pixel:d}"{extra} />'
-OME_IMAGE_NAME_EXTRA_FMT = ' Name="{name}"'
-OME_PIXELS_PHYSICAL_SIZE_XY_EXTRA_FMT = ' PhysicalSizeX="{x:f}" PhysicalSizeY="{y:f}"'
-OME_PIXELS_PHYSICAL_SIZE_Z_EXTRA_FMT = ' PhysicalSizeZ="{z:f}"'
-OME_CHANNEL_NAME_EXTRA_FMT = ' Name="{name}"'
-
-OME_TYPES = {
-    np.bool: 'bool',
-    np.int8().dtype: 'int8',
-    np.int16().dtype: 'int16',
-    np.int32().dtype: 'int32',
-    np.uint8().dtype: 'uint8',
-    np.uint16().dtype: 'uint16',
-    np.uint32().dtype: 'uint32',
-    np.float32().dtype: 'float',
-    np.float64().dtype: 'double',
-}
 
 
 class WriteMode(Enum):
@@ -46,8 +31,33 @@ class ByteOrder(Enum):
     BIG_ENDIAN = '>'
 
 
-class OMESchemaVersion(Enum):
-    OME201606v2 = 'http://www.openmicroscopy.org/Schemas/OME/2016-06'
+OME_XML_TEMPLATE_201606V2 = os.path.join(os.path.dirname(__file__), 'ome201606v2.xml')
+OME_XML_FUNC_TYPE = Callable[
+    [np.ndarray, Optional[str], Optional[str], ByteOrder, Optional[float], Optional[float], str],
+    ET.Element
+]
+OME_TYPES = {
+    np.bool: 'bool',
+    np.int8().dtype: 'int8',
+    np.int16().dtype: 'int16',
+    np.int32().dtype: 'int32',
+    np.uint8().dtype: 'uint8',
+    np.uint16().dtype: 'uint16',
+    np.uint32().dtype: 'uint32',
+    np.float32().dtype: 'float',
+    np.float64().dtype: 'double',
+}
+
+
+class PartialFormatter(string.Formatter):
+    def __init__(self, default='{{{0}}}'):
+        self.default = default
+
+    def get_value(self, key, args, kwargs):
+        if isinstance(key, str):
+            return kwargs.get(key, self.default.format(key))
+        else:
+            return super(PartialFormatter, self).get_value(key, args, kwargs)
 
 
 def _is_data_array(img) -> bool:
@@ -56,32 +66,41 @@ def _is_data_array(img) -> bool:
     return False
 
 
-def _get_ome_xml(img: np.ndarray, image_name: Optional[str], channel_names: Optional[Sequence[str]],
-                 byte_order: ByteOrder, pixel_size: Optional[float], pixel_depth: Optional[float],
-                 ome_schema_version: OMESchemaVersion) -> str:
-    with open(OME_XML_FILE_PATH, 'r') as ome_xml_file:
-        ome_xml = ome_xml_file.read()
+_OME_CHANNEL_XML_FMT = '<Channel ID="Channel:0:{id:d}" SamplesPerPixel="{samples_per_pixel:d}"{channel_extra} />'
+_OME_IMAGE_NAME_EXTRA_FMT = ' Name="{name}"'
+_OME_PIXELS_PHYSICAL_SIZE_XY_EXTRA_FMT = ' PhysicalSizeX="{x:f}" PhysicalSizeY="{y:f}"'
+_OME_PIXELS_PHYSICAL_SIZE_Z_EXTRA_FMT = ' PhysicalSizeZ="{z:f}"'
+_OME_CHANNEL_NAME_EXTRA_FMT = ' Name="{name}"'
+
+
+def get_ome_xml(img: np.ndarray, image_name: Optional[str], channel_names: Optional[Sequence[str]],
+                byte_order: ByteOrder, pixel_size: Optional[float], pixel_depth: Optional[float],
+                ome_xml_template_file_path: str) -> ET.Element:
+    with open(ome_xml_template_file_path, 'r') as ome_xml_template_file:
+        ome_xml_template = ome_xml_template_file.read()
     size_t, size_z, size_c, size_y, size_x, size_s = img.shape
     image_extra = ''
     if image_name:
-        image_extra += OME_IMAGE_NAME_EXTRA_FMT.format(name=image_name)
+        image_extra += _OME_IMAGE_NAME_EXTRA_FMT.format(name=image_name)
     pixels_extra = ''
     if pixel_size is not None:
-        pixels_extra += OME_PIXELS_PHYSICAL_SIZE_XY_EXTRA_FMT.format(x=pixel_size, y=pixel_size)
+        pixels_extra += _OME_PIXELS_PHYSICAL_SIZE_XY_EXTRA_FMT.format(x=pixel_size, y=pixel_size)
     if pixel_depth is not None:
-        pixels_extra += OME_PIXELS_PHYSICAL_SIZE_Z_EXTRA_FMT.format(z=pixel_depth)
+        pixels_extra += _OME_PIXELS_PHYSICAL_SIZE_Z_EXTRA_FMT.format(z=pixel_depth)
     ome_channel_xml = ''
     for channel_id in range(size_c):
         channel_extra = ''
         if channel_names is not None and channel_names[channel_id]:
-            channel_extra += OME_CHANNEL_NAME_EXTRA_FMT.format(name=channel_names[channel_id])
-        ome_channel_xml += OME_CHANNEL_XML_FMT.format(id=channel_id, samples_per_pixel=size_s, extra=channel_extra)
-    return ome_xml.format(
-        xmlns=ome_schema_version.value,
+            channel_extra += _OME_CHANNEL_NAME_EXTRA_FMT.format(name=channel_names[channel_id])
+        ome_channel_xml += _OME_CHANNEL_XML_FMT.format(id=channel_id, samples_per_pixel=size_s,
+                                                       channel_extra=channel_extra)
+    ome_xml = PartialFormatter().format(
+        ome_xml_template,
         type=OME_TYPES[img.dtype], big_endian=(byte_order == ByteOrder.BIG_ENDIAN),
         size_x=size_x, size_y=size_y, size_c=size_c, size_z=size_z, size_t=size_t,
         image_extra=image_extra, pixels_extra=pixels_extra, channel_xml=ome_channel_xml
     )
+    return ET.fromstring(ome_xml)
 
 
 def to_tiff(img, file, image_name: Optional[str] = None, channel_names: Optional[Union[Sequence[str], str]] = None,
@@ -89,7 +108,7 @@ def to_tiff(img, file, image_name: Optional[str] = None, channel_names: Optional
             big_tiff: Optional[bool] = None, big_tiff_size_threshold: int = 2 ** 32 - 2 ** 25,
             byte_order: Optional[ByteOrder] = None, compression_type: Optional[str] = None, compression_level: int = 0,
             pixel_size: Optional[float] = None, pixel_depth: Optional[float] = None,
-            ome_schema_version: OMESchemaVersion = OMESchemaVersion.OME201606v2) -> None:
+            ome_xml_fun: OME_XML_FUNC_TYPE = get_ome_xml, ome_xml_template: str = OME_XML_TEMPLATE_201606V2) -> None:
     """
     Writes an image as TIFF file with TZCYX channel order.
 
@@ -130,7 +149,11 @@ def to_tiff(img, file, image_name: Optional[str] = None, channel_names: Optional
     :param pixel_size: Planar (x/y) size of one pixel, in micrometer.
     :param pixel_depth: Depth (z size) of one pixel, in micrometer. Only relevant when writing OME-TIFF files, any value
         other than None will raise a warning for other write modes.
-    :param ome_schema_version: OME-XML schema version. Only relevant when writing OME-TIFF files, ignored otherwise.
+    :param ome_xml_fun: Function that will be used for generating the OME-XML header. See the default implementation
+        for reference of the required signature. Only relevant when writing OME-TIFF files, ignored otherwise.
+    :param ome_xml_template: Path to the OME-XML template file containing the Python format string that will be passed
+        to ome_xml_fun. See the default value for reference of the available placeholders. Only relevant when writing
+        OME-TIFF files, ignored otherwise.
     """
     # check file name
     if isinstance(file, str):
@@ -254,10 +277,18 @@ def to_tiff(img, file, image_name: Optional[str] = None, channel_names: Optional
     assert big_tiff is not None
 
     # prepare description
-    desc = None
+    description = None
     if write_mode == WriteMode.OME_TIFF:
-        desc = _get_ome_xml(img, image_name, channel_names, byte_order, pixel_size, pixel_depth, ome_schema_version)
+        ome_element = ome_xml_fun(img, image_name, channel_names, byte_order, pixel_size, pixel_depth, ome_xml_template)
+        ome_ns_match = re.search('{.*}', ome_element.tag)
+        if ome_ns_match:
+            ome_ns = ome_ns_match.group(0)[1:-1]
+            ET.register_namespace('', ome_ns)
+        ome_tree = ET.ElementTree(element=ome_element)
+        with BytesIO() as ome_xml_buffer:
+            ome_tree.write(ome_xml_buffer, encoding='utf8', xml_declaration=True)
+            description = ome_xml_buffer.getvalue().decode('utf8')
 
     # write image
     with TiffWriter(file, imagej=(write_mode == WriteMode.IMAGEJ), bigtiff=big_tiff, byteorder=byte_order.value) as tw:
-        tw.save(img, compress=compression, description=desc, datetime=image_date, resolution=resolution)
+        tw.save(img, compress=compression, description=description, datetime=image_date, resolution=resolution)
