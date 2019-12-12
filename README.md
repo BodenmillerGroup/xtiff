@@ -1,6 +1,6 @@
 # xtiff
 
-A small Python 3 library for writing multi-channel TIFF stacks.
+A tiny Python 3 library for writing multi-channel TIFF stacks.
 
 The aim of this library is to provide an easy way to write multi-channel image stacks for external visualization and
 analysis. It acts as an interface to the popular [tifffile](https://www.lfd.uci.edu/~gohlke/) package and supports

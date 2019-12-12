@@ -6,7 +6,7 @@ with open('README.md', 'r') as readme_file:
 setup(
     name='xtiff',
     version='0.1.0',
-    description='Write xarray DataSets as multichannel OME-TIFFs',
+    description='A tiny Python 3 library for writing multi-channel TIFF stacks',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/BodenmillerGroup/xtiff',
