@@ -54,7 +54,7 @@ minimum.
 2019-12-12 v0.1.0 - Initial release  
 2019-12-12 v0.1.1 - Documentation corrections  
 2019-12-12 v0.1.2 - Documentation corrections  
-2019-12-12 v0.2.0 - Expose OME-XML to user
+2019-12-12 v0.2.0 - Expose OME-XML to user  
 2019-12-12 v0.2.1 - Documentation corrections
 
 ## License
