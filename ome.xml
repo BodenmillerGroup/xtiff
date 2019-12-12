@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OME xmlns="{xmlns}" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="{xmlns} {xmlns}/ome.xsd">
+    <Image ID="Image:0"{image_extra}>
+        <Pixels ID="Pixels:0" DimensionOrder="XYCZT" Type="{type}" Interleaved="true" BigEndian="{big_endian}" SizeX="{size_x:d}" SizeY="{size_y:d}" SizeC="{size_c:d}" SizeZ="{size_z:d}" SizeT="{size_t:d}"{pixels_extra}>
+            {channel_xml}
+        </Pixels>
+    </Image>
+</OME>
