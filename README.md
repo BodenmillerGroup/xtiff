@@ -14,18 +14,18 @@ naming of channels.
 
 Install from pypi:
 
-`python3 -m pip install xtiff`
+`pip install xtiff`
 
 
 ## Usage
 
 The package provides one single function:
 
-```
+```python3
 to_tiff(img, file, image_name=None, channel_names=None, image_date=None,
-        write_mode=WriteMode.OME_TIFF, big_tiff=None, big_tiff_size_threshold=2 ** 32 - 2 ** 25, 
-        byte_order=None, compression_type=None, compression_level=0, pixel_size=None, pixel_depth=None,
-        ome_schema_version=OMESchemaVersion.OME201606v2)
+        write_mode=WriteMode.OME_TIFF, big_tiff=None, big_tiff_size_threshold=4294967246, 
+        byte_order=None, compression_type=None, compression_level=0, pixel_size=None,
+        pixel_depth=None, ome_schema_version=OMESchemaVersion.OME201606v2)
 ```
 
 Documentation of the function parameters is available via Python's internal help system: `help(xtiff.to_tiff)`
@@ -53,4 +53,4 @@ minimum.
 
 ## License
 
-This project is licensed under the [MIT license](LICENSE.txt).
+This project is licensed under the [MIT license](https://github.com/BodenmillerGroup/xtiff/blob/master/LICENSE.txt).
