@@ -4,8 +4,9 @@ A small Python 3 library for writing multi-channel TIFF stacks.
 
 The aim of this library is to provide an easy way to write multi-channel image stacks for external visualization and
 analysis. It acts as an interface to the popular [tifffile](https://www.lfd.uci.edu/~gohlke/) package and supports
-[xarray](http://xarray.pydata.org) DataArrays as well as [numpy](https://www.numpy.org)-compatible data structures. To
-maximize compatibility with third-party software, the images are written in standard-compliant fashion, with minimal
+[xarray](http://xarray.pydata.org) DataArrays as well as [numpy](https://www.numpy.org)-compatible data structures.
+
+To maximize compatibility with third-party software, the images are written in standard-compliant fashion, with minimal
 metadata and in TZCYX channel order. In particular, a minimal subset of the OME-TIFF standard is supported, enabling the
 naming of channels.
 
@@ -21,9 +22,10 @@ Install from pypi:
 The package provides one single function:
 
 ```
-to_tiff(img, file, image_name=None, channel_names=None, image_date=None, write_mode=WriteMode.OME_TIFF, big_tiff=None,
-        big_tiff_size_threshold=2 ** 32 - 2 ** 25, byte_order=None, compression_type=None, compression_level=0,
-        pixel_size=None, pixel_depth=None, ome_schema_version=OMESchemaVersion.OME201606v2)
+to_tiff(img, file, image_name=None, channel_names=None, image_date=None,
+        write_mode=WriteMode.OME_TIFF, big_tiff=None, big_tiff_size_threshold=2 ** 32 - 2 ** 25, 
+        byte_order=None, compression_type=None, compression_level=0, pixel_size=None, pixel_depth=None,
+        ome_schema_version=OMESchemaVersion.OME201606v2)
 ```
 
 Documentation of the function parameters is available via Python's internal help system: `help(xtiff.to_tiff)`
