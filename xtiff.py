@@ -1,5 +1,5 @@
 from io import BytesIO
-from typing import Optional, Sequence, Union, Callable
+from typing import Optional, Sequence, Union
 
 import numpy as np
 import os
@@ -32,10 +32,6 @@ class ByteOrder(Enum):
 
 
 OME_XML_TEMPLATE_201606V2 = os.path.join(os.path.dirname(__file__), 'ome201606v2.xml')
-OME_XML_FUNC_TYPE = Callable[
-    [np.ndarray, Optional[str], Optional[str], ByteOrder, Optional[float], Optional[float], str],
-    ET.Element
-]
 OME_TYPES = {
     np.bool: 'bool',
     np.int8().dtype: 'int8',
@@ -75,7 +71,7 @@ _OME_CHANNEL_NAME_EXTRA_FMT = ' Name="{name}"'
 
 def get_ome_xml(img: np.ndarray, image_name: Optional[str], channel_names: Optional[Sequence[str]],
                 byte_order: ByteOrder, pixel_size: Optional[float], pixel_depth: Optional[float],
-                ome_xml_template_file_path: str) -> ET.Element:
+                ome_xml_template_file_path: str, **kwargs) -> ET.Element:
     with open(ome_xml_template_file_path, 'r') as ome_xml_template_file:
         ome_xml_template = ome_xml_template_file.read()
     size_t, size_z, size_c, size_y, size_x, size_s = img.shape
@@ -108,7 +104,7 @@ def to_tiff(img, file, image_name: Optional[str] = None, channel_names: Optional
             big_tiff: Optional[bool] = None, big_tiff_size_threshold: int = 2 ** 32 - 2 ** 25,
             byte_order: Optional[ByteOrder] = None, compression_type: Optional[str] = None, compression_level: int = 0,
             pixel_size: Optional[float] = None, pixel_depth: Optional[float] = None,
-            ome_xml_fun: OME_XML_FUNC_TYPE = get_ome_xml, ome_xml_template: str = OME_XML_TEMPLATE_201606V2) -> None:
+            ome_xml=get_ome_xml, ome_xml_template: str = OME_XML_TEMPLATE_201606V2, **ome_xml_kwargs) -> None:
     """
     Writes an image as TIFF file with TZCYX channel order.
 
@@ -149,11 +145,13 @@ def to_tiff(img, file, image_name: Optional[str] = None, channel_names: Optional
     :param pixel_size: Planar (x/y) size of one pixel, in micrometer.
     :param pixel_depth: Depth (z size) of one pixel, in micrometer. Only relevant when writing OME-TIFF files, any value
         other than None will raise a warning for other write modes.
-    :param ome_xml_fun: Function that will be used for generating the OME-XML header. See the default implementation
-        for reference of the required signature. Only relevant when writing OME-TIFF files, ignored otherwise.
+    :param ome_xml: Function that will be used for generating the OME-XML header. See the default implementation for
+        reference of the required signature. Only relevant when writing OME-TIFF files, ignored otherwise.
     :param ome_xml_template: Path to the OME-XML template file containing the Python format string that will be passed
         to ome_xml_fun. See the default value for reference of the available placeholders. Only relevant when writing
         OME-TIFF files, ignored otherwise.
+    :param ome_xml_kwargs: Optional arguments that are passed to ome_xml. Only relevant when writing OME-TIFF files,
+        will raise a warning if provided for other write modes.
     """
     # check file name
     if isinstance(file, str):
@@ -278,15 +276,19 @@ def to_tiff(img, file, image_name: Optional[str] = None, channel_names: Optional
 
     # prepare description
     description = None
+    if ome_xml_kwargs and write_mode != WriteMode.OME_TIFF:
+        warnings.warn('Additional arguments are supported for OME-TIFF only, ignoring additional arguments')
+        ome_xml_kwargs = {}
     if write_mode == WriteMode.OME_TIFF:
-        ome_element = ome_xml_fun(img, image_name, channel_names, byte_order, pixel_size, pixel_depth, ome_xml_template)
-        ome_ns_match = re.search('{.*}', ome_element.tag)
-        if ome_ns_match:
-            ome_ns = ome_ns_match.group(0)[1:-1]
-            ET.register_namespace('', ome_ns)
-        ome_tree = ET.ElementTree(element=ome_element)
+        ome_xml_element = ome_xml(img, image_name, channel_names, byte_order, pixel_size, pixel_depth, ome_xml_template,
+                                  **ome_xml_kwargs)
+        ome_xml_ns_match = re.search('{.*}', ome_xml_element.tag)
+        if ome_xml_ns_match:
+            ome_xml_ns = ome_xml_ns_match.group(0)[1:-1]
+            ET.register_namespace('', ome_xml_ns)
+        ome_xml_tree = ET.ElementTree(element=ome_xml_element)
         with BytesIO() as ome_xml_buffer:
-            ome_tree.write(ome_xml_buffer, encoding='utf8', xml_declaration=True)
+            ome_xml_tree.write(ome_xml_buffer, encoding='utf8', xml_declaration=True)
             description = ome_xml_buffer.getvalue().decode('utf8')
 
     # write image
