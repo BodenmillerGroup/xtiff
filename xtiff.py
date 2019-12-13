@@ -31,7 +31,7 @@ class ByteOrder(Enum):
     BIG_ENDIAN = '>'
 
 
-MINIMAL_OME_XML_TEMPLATE_201606V2 = os.path.join(os.path.dirname(__file__), 'ome201606v2.xml')
+BASIC_OME_XML_TEMPLATE_201606V2 = os.path.join(os.path.dirname(__file__), 'ome201606v2.xml')
 OME_TYPES = {
     np.bool: 'bool',
     np.int8().dtype: 'int8',
@@ -119,7 +119,7 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None,
             big_tiff_size_threshold: int = 2 ** 32 - 2 ** 25, byte_order: Optional[ByteOrder] = None,
             compression_type: Optional[str] = None, compression_level: int = 0, pixel_size: Optional[float] = None,
             pixel_depth: Optional[float] = None, ome_xml=get_ome_xml,
-            ome_xml_template: str = MINIMAL_OME_XML_TEMPLATE_201606V2, **ome_xml_kwargs) -> None:
+            ome_xml_template: str = BASIC_OME_XML_TEMPLATE_201606V2, **ome_xml_kwargs) -> None:
     """
     Writes an image as TIFF file with TZCYX channel order.
 

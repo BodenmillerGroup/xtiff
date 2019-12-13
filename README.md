@@ -25,7 +25,7 @@ The package provides the following main function for writing TIFF files:
 to_tiff(img, file, image_name=None, channel_names=None, image_date=None,
         write_mode=WriteMode.OME_TIFF, big_tiff=None, big_tiff_size_threshold=4294967246, 
         byte_order=None, compression_type=None, compression_level=0, pixel_size=None,
-        pixel_depth=None, ome_xml=get_ome_xml, ome_xml_template=OME_XML_TEMPLATE_201606V2
+        pixel_depth=None, ome_xml=get_ome_xml, ome_xml_template=BASIC_OME_XML_TEMPLATE_201606V2
         **ome_xml_kwargs)
 ```
 
