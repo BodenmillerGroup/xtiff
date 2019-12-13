@@ -99,10 +99,10 @@ def get_ome_xml(template: str, img: np.ndarray, image_name: Optional[str], chann
 
 def _get_ome_xml_description(f, template_file_path: str, img: np.ndarray, image_name: Optional[str],
                              channel_names: Optional[Sequence[str]], byte_order: ByteOrder, pixel_size: Optional[float],
-                             pixel_depth: Optional[float], **ome_xml_kwargs) -> str:
+                             pixel_depth: Optional[float], **kwargs) -> str:
     with open(template_file_path, 'r') as template_file:
         template = template_file.read()
-    element = f(template, img, image_name, channel_names, byte_order, pixel_size, pixel_depth, **ome_xml_kwargs)
+    element = f(template, img, image_name, channel_names, byte_order, pixel_size, pixel_depth, **kwargs)
     ns_match = re.search('{.*}', element.tag)
     if ns_match:
         ns = ns_match.group(0)[1:-1]
