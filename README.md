@@ -55,6 +55,7 @@ minimum.
 2019-12-12 v0.1.2 - Initial release  
 2019-12-12 v0.2.1 - Expose OME-XML to user  
 2019-12-12 v0.2.2 - Support for ome_xml_kwargs  
+2019-12-13 v0.3.0 - Simplified to_tiff interface  
 
 ## License
 
