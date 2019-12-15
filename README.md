@@ -22,11 +22,10 @@ Install from pypi:
 The package provides the following main function for writing TIFF files:
 
 ```python3
-to_tiff(img, file, image_name=None, channel_names=None, image_date=None,
-        write_mode=WriteMode.OME_TIFF, big_tiff=None, big_tiff_size_threshold=4294967246, 
-        byte_order=None, compression_type=None, compression_level=0, pixel_size=None,
-        pixel_depth=None, ome_xml=get_ome_xml, ome_xml_template=BASIC_OME_XML_TEMPLATE_201606V2
-        **ome_xml_kwargs)
+to_tiff(img, file, image_name=None, image_date=None, channel_names=None, description=None,
+        profile=TiffProfile.OME_TIFF, big_endian=None, big_tiff=None, big_tiff_threshold=4261412864, 
+        compression_type=None, compression_level=0, pixel_size=None, pixel_depth=None, 
+        ome_xml=get_ome_xml, ome_xml_template=_get_default_ome_xml_template(), **ome_xml_kwargs)
 ```
 
 Documentation of the function parameters is available via Python's internal help system: `help(xtiff.to_tiff)`
@@ -56,6 +55,7 @@ minimum.
 2019-12-12 v0.2.1 - Expose OME-XML to user  
 2019-12-12 v0.2.2 - Support for ome_xml_kwargs  
 2019-12-13 v0.3.0 - Simplified to_tiff interface  
+2019-12-15 v0.4.0 - Added description parameter  
 
 ## License
 

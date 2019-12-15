@@ -8,6 +8,8 @@ import string
 import sys
 import tifffile
 import warnings
+
+# noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
 
 from datetime import datetime
@@ -19,19 +21,6 @@ try:
 except ImportError:
     xr = None
 
-
-class WriteMode(Enum):
-    TIFF = 1
-    IMAGEJ = 2
-    OME_TIFF = 3
-
-
-class ByteOrder(Enum):
-    LITTLE_ENDIAN = '<'
-    BIG_ENDIAN = '>'
-
-
-BASIC_OME_XML_TEMPLATE_201606V2 = os.path.join(os.path.dirname(__file__), 'ome201606v2.xml')
 OME_TYPES = {
     np.bool: 'bool',
     np.int8().dtype: 'int8',
@@ -44,13 +33,7 @@ OME_TYPES = {
     np.float64().dtype: 'double',
 }
 
-
-def _is_data_array(img) -> bool:
-    if xr is not None:
-        return isinstance(img, xr.DataArray)
-    return False
-
-
+_DEFAULT_OME_XML_TEMPLATE_FILE_NAME = 'ome201606v2.xml'
 _OME_CHANNEL_XML_FMT = '<Channel ID="Channel:0:{id:d}" SamplesPerPixel="{samples_per_pixel:d}"{channel_extra} />'
 _OME_IMAGE_NAME_EXTRA_FMT = ' Name="{name}"'
 _OME_PIXELS_PHYSICAL_SIZE_XY_EXTRA_FMT = ' PhysicalSizeX="{x:f}" PhysicalSizeY="{y:f}"'
@@ -58,9 +41,21 @@ _OME_PIXELS_PHYSICAL_SIZE_Z_EXTRA_FMT = ' PhysicalSizeZ="{z:f}"'
 _OME_CHANNEL_NAME_EXTRA_FMT = ' Name="{name}"'
 
 
+class TiffProfile(Enum):
+    TIFF = 1
+    IMAGEJ = 2
+    OME_TIFF = 3
+
+
+def _is_data_array(img) -> bool:
+    if xr is not None:
+        return isinstance(img, xr.DataArray)
+    return False
+
+
+# noinspection PyUnusedLocal
 def get_ome_xml(template: str, img: np.ndarray, image_name: Optional[str], channel_names: Optional[Sequence[str]],
-                byte_order: ByteOrder, pixel_size: Optional[float], pixel_depth: Optional[float],
-                **kwargs) -> ET.Element:
+                big_endian: bool, pixel_size: Optional[float], pixel_depth: Optional[float], **kwargs) -> ET.Element:
     size_t, size_z, size_c, size_y, size_x, size_s = img.shape
 
     image_extra = ''
@@ -84,25 +79,22 @@ def get_ome_xml(template: str, img: np.ndarray, image_name: Optional[str], chann
         def __init__(self, default='{{{0}}}'):
             self.default = default
 
-        def get_value(self, key, args, kwargs):
+        def get_value(self, key, args, formatter_kwargs):
             if isinstance(key, str):
-                return kwargs.get(key, self.default.format(key))
+                return formatter_kwargs.get(key, self.default.format(key))
             else:
-                return super(PartialFormatter, self).get_value(key, args, kwargs)
+                return super(PartialFormatter, self).get_value(key, args, formatter_kwargs)
 
-    xml = PartialFormatter().format(template, type=OME_TYPES[img.dtype],
-                                    big_endian=(byte_order == ByteOrder.BIG_ENDIAN), size_x=size_x, size_y=size_y,
-                                    size_c=size_c, size_z=size_z, size_t=size_t, image_extra=image_extra,
-                                    pixels_extra=pixels_extra, channel_xml=channel_xml)
+    xml = PartialFormatter().format(template, type=OME_TYPES[img.dtype], big_endian=big_endian,
+                                    size_x=size_x, size_y=size_y, size_c=size_c, size_z=size_z, size_t=size_t,
+                                    image_extra=image_extra, pixels_extra=pixels_extra, channel_xml=channel_xml)
     return ET.fromstring(xml)
 
 
-def _get_ome_xml_description(f, template_file_path: str, img: np.ndarray, image_name: Optional[str],
-                             channel_names: Optional[Sequence[str]], byte_order: ByteOrder, pixel_size: Optional[float],
-                             pixel_depth: Optional[float], **kwargs) -> str:
-    with open(template_file_path, 'r') as template_file:
-        template = template_file.read()
-    element = f(template, img, image_name, channel_names, byte_order, pixel_size, pixel_depth, **kwargs)
+def _get_ome_xml_description(f, template: str, img: np.ndarray,
+                             image_name: Optional[str], channel_names: Optional[Sequence[str]], big_endian: bool,
+                             pixel_size: Optional[float], pixel_depth: Optional[float], **kwargs) -> str:
+    element = f(template, img, image_name, channel_names, big_endian, pixel_size, pixel_depth, **kwargs)
     ns_match = re.search('{.*}', element.tag)
     if ns_match:
         ns = ns_match.group(0)[1:-1]
@@ -113,13 +105,19 @@ def _get_ome_xml_description(f, template_file_path: str, img: np.ndarray, image_
         return description_buffer.getvalue().decode('utf8')
 
 
-def to_tiff(img, file, image_name: Union[str, bool, None] = None,
-            channel_names: Union[Sequence[str], bool, None] = None, image_date: Union[str, datetime, None] = None,
-            write_mode: WriteMode = WriteMode.OME_TIFF, big_tiff: Optional[bool] = None,
-            big_tiff_size_threshold: int = 2 ** 32 - 2 ** 25, byte_order: Optional[ByteOrder] = None,
-            compression_type: Optional[str] = None, compression_level: int = 0, pixel_size: Optional[float] = None,
-            pixel_depth: Optional[float] = None, ome_xml=get_ome_xml,
-            ome_xml_template: str = BASIC_OME_XML_TEMPLATE_201606V2, **ome_xml_kwargs) -> None:
+def _get_default_ome_xml_template() -> str:
+    template_file_path = os.path.join(os.path.dirname(__file__), _DEFAULT_OME_XML_TEMPLATE_FILE_NAME)
+    with open(template_file_path, 'r') as template_file:
+        return template_file.read()
+
+
+def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Union[str, datetime, None] = None,
+            channel_names: Union[Sequence[str], bool, None] = None, description: Optional[str] = None,
+            profile: TiffProfile = TiffProfile.OME_TIFF, big_endian: Optional[bool] = None,
+            big_tiff: Optional[bool] = None, big_tiff_threshold: int = 2 ** 32 - 2 ** 25,
+            compression_type: Optional[str] = None, compression_level: int = 0,
+            pixel_size: Optional[float] = None, pixel_depth: Optional[float] = None,
+            ome_xml=get_ome_xml, ome_xml_template: str = _get_default_ome_xml_template(), **ome_xml_kwargs) -> None:
     """
     Writes an image as TIFF file with TZCYX channel order.
 
@@ -131,60 +129,62 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None,
         - (t, z, c, y, x)
         - (t, z, c, y, x, s)
         Supported data types:
-        - any numpy data type in TIFF write mode
-        - uint8, uint16, float32 in ImageJ write mode (uint8 for RGB images)
-        - bool, int8, int16, int32, uint8, uint16, uint32, float32, float64 in OME-TIFF write mode
+        - any numpy data type when using TiffProfile.TIFF
+        - uint8, uint16, float32 when using TiffProfile.IMAGEJ (uint8 for RGB images)
+        - bool, int8, int16, int32, uint8, uint16, uint32, float32, float64 when using TiffProfile.OME_TIFF
     :param file: File target supported by tifffile TiffWriter, e.g. path to file (str) or binary stream.
     :param image_name: Image name for OME-TIFF images. If True, the image name is determined using the DataArray name or
         the file name (in that order); if False, the image name is not set. If None, defaults to the behavior for True
-        for named DataArrays and when the file path is provided, or to the behavior of False otherwise. Only relevant
-        when writing OME-TIFF files, any value other than None or False will raise a warning for other write modes.
+        for named DataArrays and when the file path is provided, and to the behavior of False otherwise. Only relevant
+        when writing OME-TIFF files, any value other than None or False will raise a warning for other TIFF profiles.
+    :param image_date: Date and time of image creation in '%Y:%m:%d %H:%M:%S' format or as datetime object. Defaults to
+        the current date and time if None. Note: this does not determine the OME-XML AcquisitionDate element value.
     :param channel_names: A list of channel names. If True, channel names are determined using the DataArray channel
         coordinate; if False, channel names are not set. If None, defaults to the behavior for True for DataArrays when
-        writing multi-channel OME-TIFFs, or to the behavior for False otherwise. Only relevant when writing OME-TIFF
-        files, any value other than None or False will raise a warning for other write modes.
-    :param image_date: Date and time of image creation in '%Y:%m:%d %H:%M:%S' format or as datetime object. Defaults to
-        the current date and time if None. Note: this does not correspond to the OME-TIFF acquisition date.
-    :param write_mode: TIFF format/standard of the written file.
-        Supported write modes:
+        writing multi-channel OME-TIFFs, and to the behavior for False otherwise. Only relevant when writing
+        multi-channel OME-TIFF files, any value other than None or False will raise a warning for other TIFF profiles.
+    :param description: TIFF description tag. Will default to the OME-XML header when writing OME-TIFF files. Any value
+        other than None will raise a warning in this case.
+    :param profile: TIFF specification of the written file.
+        Supported TIFF profiles:
         - TIFF (no restrictions apply)
         - ImageJ (undocumented file format that is supported by the ImageJ software)
         - OME-TIFF (Open Microscopy Environment TIFF standard-compliant file format with minimal OME-XML header)
-    :param big_tiff: If True, enables support for writing files larger than 4GB. Not supported in ImageJ write mode.
-    :param big_tiff_size_threshold: Threshold for enabling BigTIFF support when big_tiff is set to None, in bytes.
-        Defaults to 4GB - 32MB for metadata.
-    :param byte_order: Byte order of the written file.
+    :param big_endian: If true, stores data in big endian format, otherwise uses little endian byte order. If None, the
+        byte order is set to True for the ImageJ TIFF profile and defaults to the system default otherwise.
+    :param big_tiff: If True, enables support for writing files larger than 4GB. Not supported for TiffProfile.IMAGEJ.
+    :param big_tiff_threshold: Threshold for enabling BigTIFF support when big_tiff is set to None, in bytes. Defaults
+        to 4GB, minus 32MB for metadata.
     :param compression_type: Compression algorithm, see tifffile.TIFF.COMPRESSION() for available values. Compression is
-        not supported in ImageJ write mode. Note: Compression prevents from memory-mapping images and should therefore
+        not supported for TiffProfile.IMAGEJ. Note: Compression prevents from memory-mapping images and should therefore
         be avoided when images are compressed externally, e.g. when they are stored in compressed archives.
-    :param compression_level: Compression level, between 0 and 9. Compression is not supported in ImageJ write mode.
+    :param compression_level: Compression level, between 0 and 9. Compression is not supported for TiffProfile.IMAGEJ.
         Note: Compression prevents from memory-mapping images and should therefore be avoided when images are compressed
         externally, e.g. when they are stored in compressed archives.
     :param pixel_size: Planar (x/y) size of one pixel, in micrometer.
     :param pixel_depth: Depth (z size) of one pixel, in micrometer. Only relevant when writing OME-TIFF files, any value
-        other than None will raise a warning for other write modes.
+        other than None will raise a warning for other TIFF profiles.
     :param ome_xml: Function that will be used for generating the OME-XML header. See the default implementation for
         reference of the required signature. Only relevant when writing OME-TIFF files, ignored otherwise.
-    :param ome_xml_template: Path to the OME-XML template file containing the Python format string that will be passed
-        to ome_xml_fun. See the default value for reference of the available placeholders. Only relevant when writing
-        OME-TIFF files, ignored otherwise.
+    :param ome_xml_template: OME-XML template format string that will be passed to ome_xml_fun. See the default value
+        for reference of the available placeholders. Only relevant when writing OME-TIFF files, ignored otherwise.
     :param ome_xml_kwargs: Optional arguments that are passed to ome_xml. Only relevant when writing OME-TIFF files,
-        will raise a warning if provided for other write modes.
+        will raise a warning if provided for other TIFF profiles.
     """
     # file
     if isinstance(file, str):
         if not file.endswith('.tiff'):
-            warnings.warn('The provided TIFF file name does not end with .tiff: {}'.format(file))
-        if write_mode == WriteMode.OME_TIFF:
+            warnings.warn('The specified TIFF file name does not end with .tiff: {}'.format(file))
+        if profile == TiffProfile.OME_TIFF:
             if not file.endswith('.ome.tiff'):
-                warnings.warn('The provided OME-TIFF file name does not end with .ome.tiff: {}'.format(file))
+                warnings.warn('The specified OME-TIFF file name does not end with .ome.tiff: {}'.format(file))
         else:
             if file.endswith('.ome.tiff'):
-                warnings.warn('The provided non-OME-TIFF file name ends with .ome.tiff: {}'.format(file))
+                warnings.warn('The specified non-OME-TIFF file name ends with .ome.tiff: {}'.format(file))
 
     # image name
     data_array_has_image_name = (_is_data_array(img) and img.name)
-    if image_name is None and (data_array_has_image_name or isinstance(file, str)) and write_mode == WriteMode.OME_TIFF:
+    if image_name is None and (data_array_has_image_name or isinstance(file, str)) and profile == TiffProfile.OME_TIFF:
         image_name = True
     if isinstance(image_name, bool):
         if image_name:
@@ -198,8 +198,8 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None,
             image_name = None
     if isinstance(image_name, str) and len(image_name) == 0:
         raise ValueError('Image name is empty')
-    if image_name is not None and write_mode != WriteMode.OME_TIFF:
-        warnings.warn('The provided write mode does not consider image names, ignoring image name')
+    if image_name is not None and profile != TiffProfile.OME_TIFF:
+        warnings.warn('The provided TIFF profile does not support image names, ignoring image name')
         image_name = None
     assert image_name is None or len(image_name) > 0
 
@@ -208,26 +208,23 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None,
         image_date = datetime.now()
 
     # byte order
-    if byte_order is None:
-        if write_mode == WriteMode.IMAGEJ:
-            byte_order = ByteOrder.BIG_ENDIAN
-        else:
-            byte_order = ByteOrder.LITTLE_ENDIAN if sys.byteorder == 'little' else ByteOrder.BIG_ENDIAN
-    elif write_mode == WriteMode.IMAGEJ and byte_order != ByteOrder.BIG_ENDIAN:
-        warnings.warn('The ImageJ format does not support the provided byte order, continuing with big endian')
-        byte_order = ByteOrder.BIG_ENDIAN
-    assert byte_order is not None
+    if big_endian is None:
+        big_endian = (profile == TiffProfile.IMAGEJ) or sys.byteorder == 'big'
+    elif profile == TiffProfile.IMAGEJ and not big_endian:
+        warnings.warn('The ImageJ TIFF profile does not support the specified byte order, continuing with big endian')
+        big_endian = True
+    assert big_endian is not None
 
     # compression
     if compression_type is not None and compression_type not in tifffile.TIFF.COMPRESSION():
-        raise ValueError('The provided compression type is not supported: {}'.format(compression_type))
+        raise ValueError('The specified compression type is not supported: {}'.format(compression_type))
     if not 0 <= compression_level <= 9:
-        raise ValueError('The provided compression level is not between 0 and 9: {:d}'.format(compression_level))
+        raise ValueError('The specified compression level is not between 0 and 9: {:d}'.format(compression_level))
     compression = compression_level
     if compression_type is not None:
         compression = (compression_type, compression_level)
-    if write_mode == WriteMode.IMAGEJ and compression != 0:
-        warnings.warn('The ImageJ format does not support compression, writing uncompressed')
+    if profile == TiffProfile.IMAGEJ and compression != 0:
+        warnings.warn('The ImageJ TIFF profile does not support compression, ignoring compression')
         compression = 0
     assert isinstance(compression, int) or isinstance(compression, tuple) and len(compression) == 2
 
@@ -235,20 +232,20 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None,
     resolution = None
     if pixel_size is not None:
         if pixel_size <= 0.:
-            raise ValueError('The provided pixel size is not larger than zero: {:f}'.format(pixel_size))
+            raise ValueError('The specified pixel size is not larger than zero: {:f}'.format(pixel_size))
         pixels_per_centimeter = 10 ** 4 / pixel_size
         resolution = (pixels_per_centimeter, pixels_per_centimeter, 'CENTIMETER')
-    if pixel_depth is not None and write_mode != WriteMode.OME_TIFF:
-        warnings.warn('Pixel depth information is supported for OME-TIFF only, ignoring pixel depth information')
+    if pixel_depth is not None and profile != TiffProfile.OME_TIFF:
+        warnings.warn('Pixel depth information is supported for OME-TIFF only, ignoring pixel depth')
         pixel_depth = None
     if pixel_depth is not None and pixel_depth <= 0:
-        raise ValueError('The provided pixel depth is not larger than zero: {:f}'.format(pixel_size))
+        raise ValueError('The specified pixel depth is not larger than zero: {:f}'.format(pixel_size))
 
     # convert image to numpy array or xarray DataArray
     if not isinstance(img, np.ndarray) and not _is_data_array(img):
-        img = np.asarray(img)
-    if write_mode == WriteMode.IMAGEJ and img.dtype not in (np.uint8, np.uint16, np.float32):
-        fmt = 'The ImageJ format does not support the provided data type: {} (supported: uint8, uint16, float32)'
+        img: Union[np.ndarray, xr.DataArray] = np.asarray(img)
+    if profile == TiffProfile.IMAGEJ and img.dtype not in (np.uint8, np.uint16, np.float32):
+        fmt = 'The ImageJ TIFF profile does not support the specified data type: {} (supported: uint8, uint16, float32)'
         raise ValueError(fmt.format(str(img.dtype)))
     assert isinstance(img, np.ndarray) or _is_data_array(img)
 
@@ -271,13 +268,13 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None,
     else:
         raise ValueError('Unsupported number of dimensions: {:d} (supported: 2, 3, 4, 5, 6)'.format(img.ndim))
     size_t, size_z, size_c, size_y, size_x, size_s = img_shape
-    if write_mode == WriteMode.IMAGEJ and size_s in (3, 4) and img.dtype != np.uint8:
-        warnings.warn('The ImageJ format for RGB images does not support the provided data type, casting to uint8')
+    if profile == TiffProfile.IMAGEJ and size_s in (3, 4) and img.dtype != np.uint8:
+        warnings.warn('The ImageJ TIFF profile for RGB does not support the specified data type, casting to uint8')
         img = img.astype(np.uint8)
     assert len(img_shape) == 6
 
     # determine channel names
-    if channel_names is None and _is_data_array(img) and channel_axis is not None and write_mode == WriteMode.OME_TIFF:
+    if channel_names is None and _is_data_array(img) and channel_axis is not None and profile == TiffProfile.OME_TIFF:
         channel_names = True
     if isinstance(channel_names, bool):
         if channel_names:
@@ -285,12 +282,13 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None,
                 raise ValueError('Cannot determine channel names from non-DataArray image')
             if channel_axis is None:
                 raise ValueError('Cannot determine channel names from DataArrays without a channel dimension')
+            img: xr.DataArray = img
             channel_names = img.coords[img.dims[channel_axis]].values
         else:
             channel_names = None
     if channel_names is not None and len(channel_names) != size_c:
         raise ValueError('Invalid number of channel names: {:d} (expected: {:d})'.format(len(channel_names), size_c))
-    if channel_names is not None and write_mode != WriteMode.OME_TIFF:
+    if channel_names is not None and profile != TiffProfile.OME_TIFF:
         warnings.warn('Channel names are supported for OME-TIFF only, ignoring channel names')
         channel_names = None
     assert channel_names is None or len(channel_names) == size_c
@@ -302,28 +300,31 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None,
     assert isinstance(img, np.ndarray) and len(img.shape) == 6
 
     # determine BigTIFF status
-    if big_tiff_size_threshold < 0:
-        raise ValueError('The BigTIFF size threshold is negative: {:d}'.format(big_tiff_size_threshold))
+    if big_tiff_threshold < 0:
+        raise ValueError('The BigTIFF size threshold is negative: {:d}'.format(big_tiff_threshold))
     if big_tiff is None:
-        big_tiff = (img.size * img.itemsize > big_tiff_size_threshold)
-    if big_tiff and write_mode == WriteMode.IMAGEJ:
+        big_tiff = (img.size * img.itemsize > big_tiff_threshold)
+    if big_tiff and profile == TiffProfile.IMAGEJ:
         warnings.warn('BigTIFF is not supported for ImageJ format, disabling BigTIFF')
         big_tiff = False
     assert big_tiff is not None
 
     # get description tag
-    description = None
-    if ome_xml_kwargs and write_mode != WriteMode.OME_TIFF:
-        warnings.warn('Additional arguments are supported for OME-TIFF only, ignoring additional arguments')
+    if description is not None and profile == TiffProfile.OME_TIFF:
+        warnings.warn('Custom TIFF description tags are not supported for OME-TIFF, ignoring description')
+        description = None
+    if ome_xml_kwargs and profile != TiffProfile.OME_TIFF:
+        warnings.warn('Additional arguments are supported for OME-TIFF only, ignoring additional keyword arguments')
         ome_xml_kwargs = {}
-    if write_mode == WriteMode.OME_TIFF:
+    if profile == TiffProfile.OME_TIFF:
         if ome_xml is None:
             raise ValueError('No OME-XML-generating function provided')
-        if not os.path.isfile(ome_xml_template):
-            raise ValueError('OME-XML template file does not exist: {}'.format(ome_xml_template))
-        description = _get_ome_xml_description(ome_xml, ome_xml_template, img, image_name, channel_names, byte_order,
+        if ome_xml_template is None:
+            raise ValueError('No OME-XML template format string provided')
+        description = _get_ome_xml_description(ome_xml, ome_xml_template, img, image_name, channel_names, big_endian,
                                                pixel_size, pixel_depth, **ome_xml_kwargs)
 
     # write image
-    with TiffWriter(file, imagej=(write_mode == WriteMode.IMAGEJ), bigtiff=big_tiff, byteorder=byte_order.value) as tw:
-        tw.save(img, compress=compression, description=description, datetime=image_date, resolution=resolution)
+    byte_order = '>' if big_endian else '<'
+    with TiffWriter(file, imagej=(profile == TiffProfile.IMAGEJ), bigtiff=big_tiff, byteorder=byte_order) as writer:
+        writer.save(img, compress=compression, description=description, datetime=image_date, resolution=resolution)
