@@ -64,6 +64,7 @@ minimum.
 2019-12-13 v0.3.0 - Simplified to_tiff interface  
 2019-12-15 v0.4.0 - Added description parameter  
 2020-01-13 v0.4.1 - Fixed XML encoding and XSD compliance  
+2020-01-13 v0.4.2 - Fixed package installation problems  
 
 ## License
 

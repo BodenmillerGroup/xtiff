@@ -32,7 +32,16 @@ OME_TYPES = {
     np.float64().dtype: 'double',
 }
 
-_DEFAULT_OME_XML_TEMPLATE_FILE_NAME = 'ome201606v2.xml'
+DEFAULT_OME_XML_TEMPLATE = """<?xml version='1.0' encoding='UTF-8'?>
+<OME xmlns="http://www.openmicroscopy.org/Schemas/OME/2016-06" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openmicroscopy.org/Schemas/OME/2016-06 http://www.openmicroscopy.org/Schemas/OME/2016-06/ome.xsd">
+    <Image ID="Image:0"{image_extra}>
+        <Pixels ID="Pixels:0" DimensionOrder="XYCZT" Type="{type}" Interleaved="true" BigEndian="{big_endian}" SizeX="{size_x:d}" SizeY="{size_y:d}" SizeC="{size_c:d}" SizeZ="{size_z:d}" SizeT="{size_t:d}"{pixels_extra}>
+            {channel_xml}
+            <TiffData />
+        </Pixels>
+    </Image>
+</OME>"""
+
 _OME_CHANNEL_XML_FMT = '<Channel ID="Channel:0:{id:d}" SamplesPerPixel="{samples_per_pixel:d}"{channel_extra} />'
 _OME_IMAGE_NAME_EXTRA_FMT = ' Name="{name}"'
 _OME_PIXELS_PHYSICAL_SIZE_XY_EXTRA_FMT = ' PhysicalSizeX="{x:f}" PhysicalSizeY="{y:f}"'
@@ -106,19 +115,13 @@ def _get_ome_xml_description(f, template: str, img: np.ndarray,
         return description_buffer.getvalue().decode('utf8')
 
 
-def _get_default_ome_xml_template() -> str:
-    template_file_path = os.path.join(os.path.dirname(__file__), _DEFAULT_OME_XML_TEMPLATE_FILE_NAME)
-    with open(template_file_path, 'r') as template_file:
-        return template_file.read()
-
-
 def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Union[str, datetime, None] = None,
             channel_names: Union[Sequence[str], bool, None] = None, description: Optional[str] = None,
             profile: TiffProfile = TiffProfile.OME_TIFF, big_endian: Optional[bool] = None,
             big_tiff: Optional[bool] = None, big_tiff_threshold: int = 2 ** 32 - 2 ** 25,
             compression_type: Optional[str] = None, compression_level: int = 0,
             pixel_size: Optional[float] = None, pixel_depth: Optional[float] = None,
-            ome_xml=get_ome_xml, ome_xml_template: str = _get_default_ome_xml_template(), **ome_xml_kwargs) -> None:
+            ome_xml=get_ome_xml, ome_xml_template: str = DEFAULT_OME_XML_TEMPLATE, **ome_xml_kwargs) -> None:
     """
     Writes an image as TIFF file with TZCYX channel order.
 

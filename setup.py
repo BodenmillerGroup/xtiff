@@ -5,7 +5,7 @@ with open('README.md', 'r') as readme_file:
 
 setup(
     name='xtiff',
-    version='0.4.1',
+    version='0.4.2',
     description='A tiny Python 3 library for writing multi-channel TIFF stacks',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -30,8 +30,5 @@ setup(
         'tifffile',
     ],
     python_requires='>=3.7',
-    package_data={
-        'xtiff': ['ome201606v2.xml'],
-    },
-    zip_safe=False,
+    zip_safe=True,
 )
