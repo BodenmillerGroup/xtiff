@@ -34,6 +34,13 @@ In addition, the function `get_ome_xml()` is provided as the default OME-XML-gen
 
 ## FAQ
 
+_What metadata is included in the written images?_
+
+In general, written metadata is kept at a minimum and only information that can be inferred from the raw image data is
+included (image dimensions, data type, number of channels, channel names). Additional metadata natively supported by the
+tifffile package can be specified using function parameters. For OME-TIFF files, the OME-XML "Description" tag contents
+can be further refined by customizing the OME-XML template or by providing a custom OME-XML-generating function.
+
 _Why should I care about TIFF? I use Zarr/NetCDF/whatever._
 
 That's good! TIFF is an old and complex file format, has many disadvantages and is impractical for storing large images.
@@ -56,6 +63,7 @@ minimum.
 2019-12-12 v0.2.2 - Support for ome_xml_kwargs  
 2019-12-13 v0.3.0 - Simplified to_tiff interface  
 2019-12-15 v0.4.0 - Added description parameter  
+2020-01-13 v0.4.1 - Fixed XML encoding and XSD compliance  
 
 ## License
 

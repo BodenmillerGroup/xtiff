@@ -1,6 +1,3 @@
-from io import BytesIO
-from typing import Optional, Sequence, Union
-
 import numpy as np
 import os
 import re
@@ -9,12 +6,14 @@ import sys
 import tifffile
 import warnings
 
-# noinspection PyPep8Naming
-import xml.etree.ElementTree as ET
-
 from datetime import datetime
 from enum import Enum
+from io import BytesIO
 from tifffile import TiffWriter
+from typing import Optional, Sequence, Union
+
+# noinspection PyPep8Naming
+import xml.etree.ElementTree as ET
 
 try:
     import xarray as xr
@@ -68,12 +67,14 @@ def get_ome_xml(template: str, img: np.ndarray, image_name: Optional[str], chann
     if pixel_depth is not None:
         pixels_extra += _OME_PIXELS_PHYSICAL_SIZE_Z_EXTRA_FMT.format(z=pixel_depth)
 
-    channel_xml = ''
+    channel_xmls = []
     for channel_id in range(size_c):
         channel_extra = ''
         if channel_names is not None and channel_names[channel_id]:
             channel_extra += _OME_CHANNEL_NAME_EXTRA_FMT.format(name=channel_names[channel_id])
-        channel_xml += _OME_CHANNEL_XML_FMT.format(id=channel_id, samples_per_pixel=size_s, channel_extra=channel_extra)
+        channel_xml = _OME_CHANNEL_XML_FMT.format(id=channel_id, samples_per_pixel=size_s, channel_extra=channel_extra)
+        channel_xmls.append(channel_xml)
+    channel_xml = '\n            '.join(channel_xmls)
 
     class PartialFormatter(string.Formatter):
         def __init__(self, default='{{{0}}}'):
@@ -85,7 +86,7 @@ def get_ome_xml(template: str, img: np.ndarray, image_name: Optional[str], chann
             else:
                 return super(PartialFormatter, self).get_value(key, args, formatter_kwargs)
 
-    xml = PartialFormatter().format(template, type=OME_TYPES[img.dtype], big_endian=big_endian,
+    xml = PartialFormatter().format(template, type=OME_TYPES[img.dtype], big_endian='true' if big_endian else 'false',
                                     size_x=size_x, size_y=size_y, size_c=size_c, size_z=size_z, size_t=size_t,
                                     image_extra=image_extra, pixels_extra=pixels_extra, channel_xml=channel_xml)
     return ET.fromstring(xml)
@@ -101,7 +102,7 @@ def _get_ome_xml_description(f, template: str, img: np.ndarray,
         ET.register_namespace('', ns)
     element_tree = ET.ElementTree(element=element)
     with BytesIO() as description_buffer:
-        element_tree.write(description_buffer, encoding='utf8', xml_declaration=True)
+        element_tree.write(description_buffer, encoding='UTF-8', xml_declaration=True)
         return description_buffer.getvalue().decode('utf8')
 
 
@@ -327,4 +328,6 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Un
     # write image
     byte_order = '>' if big_endian else '<'
     with TiffWriter(file, imagej=(profile == TiffProfile.IMAGEJ), bigtiff=big_tiff, byteorder=byte_order) as writer:
-        writer.save(img, compress=compression, description=description, datetime=image_date, resolution=resolution)
+        # set photometric to 'MINISBLACK' to not treat three-channel images as RGB
+        writer.save(img, photometric='MINISBLACK', compress=compression, description=description, datetime=image_date,
+                    resolution=resolution)
