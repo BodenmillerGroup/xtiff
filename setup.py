@@ -5,7 +5,7 @@ with open('README.md', 'r') as readme_file:
 
 setup(
     name='xtiff',
-    version='0.4.2',
+    version='0.5.0',
     description='A tiny Python 3 library for writing multi-channel TIFF stacks',
     long_description=long_description,
     long_description_content_type='text/markdown',

@@ -7,7 +7,7 @@ analysis. It acts as an interface to the popular [tifffile](https://www.lfd.uci.
 [xarray](http://xarray.pydata.org) DataArrays as well as [numpy](https://www.numpy.org)-compatible data structures.
 
 To maximize compatibility with third-party software, the images are written in standard-compliant fashion, with minimal
-metadata and in TZCYX channel order. In particular, a minimal (but extensible) subset of the OME-TIFF standard is
+metadata and in TZCYX channel order. In particular, a minimal (but customizable) subset of the OME-TIFF standard is
 supported, enabling the naming of channels.
 
 ## Installation
@@ -23,14 +23,14 @@ The package provides the following main function for writing TIFF files:
 
 ```python3
 to_tiff(img, file, image_name=None, image_date=None, channel_names=None, description=None,
-        profile=TiffProfile.OME_TIFF, big_endian=None, big_tiff=None, big_tiff_threshold=4261412864, 
-        compression_type=None, compression_level=0, pixel_size=None, pixel_depth=None, 
-        ome_xml=get_ome_xml, ome_xml_template=_get_default_ome_xml_template(), **ome_xml_kwargs)
+        profile=TiffProfile.OME_TIFF, big_endian=None, big_tiff=None, big_tiff_threshold=4261412864,
+        compression_type=None, compression_level=0, pixel_size=None, pixel_depth=None,
+        ome_xml_fun=get_ome_xml, ome_channel_xml_fun=get_ome_channel_xml, **ome_kwargs)
 ```
 
 Documentation of the function parameters is available via Python's internal help system: `help(xtiff.to_tiff)`
 
-In addition, the function `get_ome_xml()` is provided as the default OME-XML-generating function.
+In addition, `get_ome_xml()` and `get_channel_ome_xml()` are provided as the default OME-XML-generating functions.
 
 ## FAQ
 
@@ -39,7 +39,7 @@ _What metadata is included in the written images?_
 In general, written metadata is kept at a minimum and only information that can be inferred from the raw image data is
 included (image dimensions, data type, number of channels, channel names). Additional metadata natively supported by the
 tifffile package can be specified using function parameters. For OME-TIFF files, the OME-XML "Description" tag contents
-can be further refined by customizing the OME-XML template or by providing a custom OME-XML-generating function.
+can be further refined by specifying custom OME-XML-generating functions.
 
 _Why should I care about TIFF? I use Zarr/NetCDF/whatever._
 
@@ -65,6 +65,7 @@ minimum.
 2019-12-15 v0.4.0 - Added description parameter  
 2020-01-13 v0.4.1 - Fixed XML encoding and XSD compliance  
 2020-01-13 v0.4.2 - Fixed package installation problems  
+2020-01-15 v0.5.0 - Simplified interface for OME-XML generation  
 
 ## License
 
