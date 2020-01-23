@@ -25,12 +25,12 @@ The package provides the following main function for writing TIFF files:
 to_tiff(img, file, image_name=None, image_date=None, channel_names=None, description=None,
         profile=TiffProfile.OME_TIFF, big_endian=None, big_tiff=None, big_tiff_threshold=4261412864,
         compression_type=None, compression_level=0, pixel_size=None, pixel_depth=None,
-        ome_xml_fun=get_ome_xml, ome_channel_xml_fun=get_ome_channel_xml, **ome_kwargs)
+        ome_xml_fun=get_ome_xml, **ome_xml_kwargs):
 ```
 
 Documentation of the function parameters is available via Python's internal help system: `help(xtiff.to_tiff)`
 
-In addition, `get_ome_xml()` and `get_channel_ome_xml()` are provided as the default OME-XML-generating functions.
+In addition, `get_ome_xml()` is provided as the default OME-XML-generating function.
 
 ## FAQ
 
@@ -66,6 +66,7 @@ minimum.
 2020-01-13 v0.4.1 - Fixed XML encoding and XSD compliance  
 2020-01-13 v0.4.2 - Fixed package installation problems  
 2020-01-15 v0.5.0 - Simplified interface for OME-XML generation  
+2020-01-23 v0.6.0 - Switched to full XML tree for OME-XML generation  
 
 ## License
 

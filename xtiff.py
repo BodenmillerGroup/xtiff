@@ -1,6 +1,5 @@
 import numpy as np
 import os
-import re
 import sys
 import tifffile
 import warnings
@@ -19,6 +18,13 @@ try:
 except ImportError:
     xr = None
 
+
+class TiffProfile(Enum):
+    TIFF = 1
+    IMAGEJ = 2
+    OME_TIFF = 3
+
+
 OME_TYPES = {
     np.bool: 'bool',
     np.int8().dtype: 'int8',
@@ -31,75 +37,55 @@ OME_TYPES = {
     np.float64().dtype: 'double',
 }
 
-_OME_XML_FMT = """<?xml version='1.0' encoding='UTF-8'?>
-<OME xmlns="http://www.openmicroscopy.org/Schemas/OME/2016-06" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openmicroscopy.org/Schemas/OME/2016-06 http://www.openmicroscopy.org/Schemas/OME/2016-06/ome.xsd">
-    <Image ID="Image:0"{image_extra}>
-        <Pixels ID="Pixels:0" DimensionOrder="XYCZT" Type="{type}" Interleaved="true" BigEndian="{big_endian}" SizeX="{size_x:d}" SizeY="{size_y:d}" SizeC="{size_c:d}" SizeZ="{size_z:d}" SizeT="{size_t:d}"{pixels_extra}>
-            {channel_xml}
-            <TiffData />
-        </Pixels>
-    </Image>
-</OME>"""
-
 
 # noinspection PyUnusedLocal
-def get_ome_xml(img: np.ndarray, ome_channel_xml_fun, image_name: Optional[str], channel_names: Optional[Sequence[str]],
-                big_endian: bool, pixel_size: Optional[float], pixel_depth: Optional[float], **ome_kwargs) -> str:
+def get_ome_xml(img: np.ndarray, image_name: Optional[str], channel_names: Optional[Sequence[str]], big_endian: bool,
+                pixel_size: Optional[float], pixel_depth: Optional[float], **ome_xml_kwargs) -> ET.ElementTree:
     size_t, size_z, size_c, size_y, size_x, size_s = img.shape
-    image_extra = ''
-    if image_name:
-        image_extra += ' Name="{name}"'.format(name=image_name)
-    pixels_extra = ''
+    if channel_names is not None:
+        assert len(channel_names) == size_c
     if pixel_size is not None:
-        pixels_extra += ' PhysicalSizeX="{x:f}" PhysicalSizeY="{y:f}"'.format(x=pixel_size, y=pixel_size)
+        assert pixel_size > 0.
     if pixel_depth is not None:
-        pixels_extra += ' PhysicalSizeZ="{z:f}"'.format(z=pixel_depth)
-    channel_xml = '\n            '.join([
-        ome_channel_xml_fun(img, channel_id, channel_names, **ome_kwargs) for channel_id in range(size_c)
-    ])
-    return _OME_XML_FMT.format(type=OME_TYPES[img.dtype], big_endian='true' if big_endian else 'false',
-                               size_x=size_x, size_y=size_y, size_c=size_c, size_z=size_z, size_t=size_t,
-                               image_extra=image_extra, pixels_extra=pixels_extra, channel_xml=channel_xml)
-
-
-_OME_CHANNEL_XML_FMT = '<Channel ID="Channel:0:{id:d}" SamplesPerPixel="{samples_per_pixel:d}"{channel_extra} />'
-
-
-# noinspection PyUnusedLocal
-def get_ome_channel_xml(img: np.ndarray, channel_id, channel_names: Optional[Sequence[str]], **ome_kwargs) -> str:
-    size_t, size_z, size_c, size_y, size_x, size_s = img.shape
-    channel_extra = ''
-    if channel_names is not None and channel_names[channel_id]:
-        channel_extra += ' Name="{name}"'.format(name=channel_names[channel_id])
-    return _OME_CHANNEL_XML_FMT.format(id=channel_id, samples_per_pixel=size_s, channel_extra=channel_extra)
-
-
-def _get_ome_xml_description(ome_xml_fun, ome_channel_xml_fun, img: np.ndarray, image_name: Optional[str],
-                             channel_names: Optional[Sequence[str]], big_endian: bool, pixel_size: Optional[float],
-                             pixel_depth: Optional[float], **ome_kwargs) -> str:
-    ome_xml = ome_xml_fun(img, ome_channel_xml_fun, image_name, channel_names, big_endian, pixel_size, pixel_depth,
-                          **ome_kwargs)
-    element = ET.fromstring(ome_xml)
-    ns_match = re.search('{.*}', element.tag)
-    if ns_match:
-        ns = ns_match.group(0)[1:-1]
-        ET.register_namespace('', ns)
-    element_tree = ET.ElementTree(element=element)
-    with BytesIO() as description_buffer:
-        element_tree.write(description_buffer, encoding='UTF-8', xml_declaration=True)
-        return description_buffer.getvalue().decode('utf8')
-
-
-class TiffProfile(Enum):
-    TIFF = 1
-    IMAGEJ = 2
-    OME_TIFF = 3
-
-
-def _is_data_array(img) -> bool:
-    if xr is not None:
-        return isinstance(img, xr.DataArray)
-    return False
+        assert pixel_depth > 0
+    ome_namespace = 'http://www.openmicroscopy.org/Schemas/OME/2016-06'
+    ome_schema_location = 'http://www.openmicroscopy.org/Schemas/OME/2016-06/ome.xsd'
+    ome_element = ET.Element('OME', attrib={
+        'xmlns': ome_namespace,
+        'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+        'xsi:schemaLocation': ' '.join((ome_namespace, ome_schema_location))
+    })
+    image_element = ET.SubElement(ome_element, 'Image', attrib={
+        'ID': 'Image:0',
+    })
+    if image_name is not None:
+        image_element.set('Name', image_name)
+    pixels_element = ET.SubElement(image_element, 'Pixels', attrib={
+        'ID': 'Pixels:0',
+        'Type': OME_TYPES[img.dtype],
+        'SizeX': str(size_x),
+        'SizeY': str(size_y),
+        'SizeC': str(size_c),
+        'SizeZ': str(size_z),
+        'SizeT': str(size_t),
+        'DimensionOrder': 'XYCZT',
+        'Interleaved': 'true',
+        'BigEndian': 'true' if big_endian else 'false',
+    })
+    if pixel_size is not None:
+        pixels_element.set('PhysicalSizeX', str(pixel_size))
+        pixels_element.set('PhysicalSizeY', str(pixel_size))
+    if pixel_depth is not None:
+        pixels_element.set('PhysicalSizeZ', str(pixel_depth))
+    for channel_id in range(size_c):
+        channel_element = ET.SubElement(pixels_element, 'Channel', attrib={
+            'ID': 'Channel:0:{:d}'.format(channel_id),
+            'SamplesPerPixel': str(size_s),
+        })
+        if channel_names is not None and channel_names[channel_id]:
+            channel_element.set('Name', channel_names[channel_id])
+    tiff_data_element = ET.SubElement(pixels_element, 'TiffData')
+    return ET.ElementTree(element=ome_element)
 
 
 def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Union[str, datetime, None] = None,
@@ -108,7 +94,7 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Un
             big_tiff: Optional[bool] = None, big_tiff_threshold: int = 2 ** 32 - 2 ** 25,
             compression_type: Optional[str] = None, compression_level: int = 0,
             pixel_size: Optional[float] = None, pixel_depth: Optional[float] = None,
-            ome_xml_fun=get_ome_xml, ome_channel_xml_fun=get_ome_channel_xml, **ome_kwargs) -> None:
+            ome_xml_fun=get_ome_xml, **ome_xml_kwargs) -> None:
     """
     Writes an image as TIFF file with TZCYX channel order.
 
@@ -157,11 +143,8 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Un
         other than None will raise a warning for other TIFF profiles.
     :param ome_xml_fun: Function that will be used for generating the OME-XML header. See the default implementation for
         reference of the required signature. Only relevant when writing OME-TIFF files, ignored otherwise.
-    :param ome_channel_xml_fun: Function that will be used fo generating an OME-XML Channel element in the OME-XML
-        header. See the default implementation for reference of the required signature. Only relevant when writing
-        OME-TIFF files, ignored otherwise.
-    :param ome_kwargs: Optional arguments that are passed to the ome_xml_fun and ome_channel_xml_fun functions. Only
-        relevant when writing OME-TIFF files, will raise a warning if provided for other TIFF profiles.
+    :param ome_xml_kwargs: Optional arguments that are passed to the ome_xml_fun function. Only relevant when writing
+        OME-TIFF files, will raise a warning if provided for other TIFF profiles.
     """
     # file
     if isinstance(file, str):
@@ -305,16 +288,16 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Un
     if description is not None and profile == TiffProfile.OME_TIFF:
         warnings.warn('Custom TIFF description tags are not supported for OME-TIFF, ignoring description')
         description = None
-    if ome_kwargs and profile != TiffProfile.OME_TIFF:
+    if ome_xml_kwargs and profile != TiffProfile.OME_TIFF:
         warnings.warn('Additional arguments are supported for OME-TIFF only, ignoring additional keyword arguments')
-        ome_kwargs = {}
+        ome_xml_kwargs = {}
     if profile == TiffProfile.OME_TIFF:
         if ome_xml_fun is None:
             raise ValueError('No function provided for generating the OME-XML')
-        if ome_channel_xml_fun is None:
-            raise ValueError('No function provided for generating a Channel element of the OME-XML')
-        description = _get_ome_xml_description(ome_xml_fun, ome_channel_xml_fun, img, image_name, channel_names,
-                                               big_endian, pixel_size, pixel_depth, **ome_kwargs)
+        ome_xml = ome_xml_fun(img, image_name, channel_names, big_endian, pixel_size, pixel_depth, **ome_xml_kwargs)
+        with BytesIO() as description_buffer:
+            ome_xml.write(description_buffer, encoding='UTF-8', xml_declaration=True)
+            description = description_buffer.getvalue().decode('utf8')
 
     # write image
     byte_order = '>' if big_endian else '<'
@@ -322,3 +305,9 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Un
         # set photometric to 'MINISBLACK' to not treat three-channel images as RGB
         writer.save(img, photometric='MINISBLACK', compress=compression, description=description, datetime=image_date,
                     resolution=resolution)
+
+
+def _is_data_array(img) -> bool:
+    if xr is not None:
+        return isinstance(img, xr.DataArray)
+    return False
