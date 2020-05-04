@@ -238,7 +238,7 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Un
     elif img.ndim == 5:  # TZCYX
         channel_axis = 2
         img_shape = (img.shape[0], img.shape[1], img.shape[2], img.shape[3], img.shape[4], 1)
-    elif img.ndims == 6:  # TZCYXS
+    elif img.ndim == 6:  # TZCYXS
         channel_axis = 2
     else:
         raise ValueError('Unsupported number of dimensions: {:d} (supported: 2, 3, 4, 5, 6)'.format(img.ndim))
