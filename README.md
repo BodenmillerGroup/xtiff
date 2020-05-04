@@ -67,6 +67,7 @@ minimum.
 2020-01-13 v0.4.2 - Fixed package installation problems  
 2020-01-15 v0.5.0 - Simplified interface for OME-XML generation  
 2020-01-23 v0.6.0 - Switched to full XML tree for OME-XML generation  
+2020-01-23 v0.6.1 - Small bug fix in dimension checking  
 
 ## License
 
