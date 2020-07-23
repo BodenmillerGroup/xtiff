@@ -37,7 +37,7 @@ In addition, `get_ome_xml()` is provided as the default OME-XML-generating funct
 _What metadata is included in the written images?_
 
 In general, written metadata is kept at a minimum and only information that can be inferred from the raw image data is
-included (image dimensions, data type, number of channels, channel names). Additional metadata natively supported by the
+included (image dimensions, data type, number of channels, channel names for xarrays). Additional metadata natively supported by the
 tifffile package can be specified using function parameters. For OME-TIFF files, the OME-XML "Description" tag contents
 can be further refined by specifying custom OME-XML-generating functions.
 
