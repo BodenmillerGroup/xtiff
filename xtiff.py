@@ -155,10 +155,10 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Un
         if not file.suffix.lower() == '.tiff':
             warnings.warn('The specified TIFF file name does not end with .tiff: {}'.format(file))
         if profile == TiffProfile.OME_TIFF:
-            if file.suffix.lower() != '.ome.tiff':
+            if not file.name.lower().endswith('.ome.tiff'):
                 warnings.warn('The specified OME-TIFF file name does not end with .ome.tiff: {}'.format(file))
         else:
-            if file.suffix.lower() == '.ome.tiff':
+            if file.name.lower().endswith('.ome.tiff'):
                 warnings.warn('The specified non-OME-TIFF file name ends with .ome.tiff: {}'.format(file))
 
     # image name
