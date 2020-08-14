@@ -303,11 +303,13 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Un
             description = description_buffer.getvalue().decode('utf8')
 
     # write image
-    byte_order = ('>' if big_endian else '<')
-    with TiffWriter(file, bigtiff=big_tiff, byteorder=byte_order, imagej=(profile == TiffProfile.IMAGEJ)) as writer:
+    byte_order = '>' if big_endian else '<'
+    imagej = (profile == TiffProfile.IMAGEJ)
+    metadata = None if profile == TiffProfile.OME_TIFF else {}
+    with TiffWriter(file, bigtiff=big_tiff, byteorder=byte_order, imagej=imagej) as writer:
         # set photometric to 'MINISBLACK' to not treat three-channel images as RGB
         writer.save(data=img, photometric='MINISBLACK', compress=compression, description=description,
-                    datetime=image_date, resolution=resolution, software=software)
+                    datetime=image_date, resolution=resolution, software=software, metadata=metadata)
 
 
 def _is_data_array(img) -> bool:
