@@ -27,7 +27,7 @@ setup(
     py_modules=['xtiff'],
     install_requires=[
         'numpy',
-        'tifffile',
+        'tifffile>=2020.6.3,!=2020.7.17',
     ],
     python_requires='>=3.7',
     zip_safe=True,
