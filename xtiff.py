@@ -1,5 +1,4 @@
 import numpy as np
-import os
 import sys
 import tifffile
 import warnings
@@ -7,6 +6,7 @@ import warnings
 from datetime import datetime
 from enum import Enum
 from io import BytesIO
+from pathlib import Path
 from tifffile import TiffWriter
 from typing import Optional, Sequence, Union
 
@@ -14,6 +14,7 @@ from typing import Optional, Sequence, Union
 import xml.etree.ElementTree as ET
 
 try:
+    # noinspection PyPackageRequirements
     import xarray as xr
 except ImportError:
     xr = None
@@ -94,7 +95,7 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Un
             big_tiff: Optional[bool] = None, big_tiff_threshold: int = 2 ** 32 - 2 ** 25,
             compression_type: Optional[str] = None, compression_level: int = 0,
             pixel_size: Optional[float] = None, pixel_depth: Optional[float] = None,
-            ome_xml_fun=get_ome_xml, **ome_xml_kwargs) -> None:
+            software: str = 'xtiff', ome_xml_fun=get_ome_xml, **ome_xml_kwargs) -> None:
     """
     Writes an image as TIFF file with TZCYX channel order.
 
@@ -109,7 +110,7 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Un
         - any numpy data type when using TiffProfile.TIFF
         - uint8, uint16, float32 when using TiffProfile.IMAGEJ (uint8 for RGB images)
         - bool, int8, int16, int32, uint8, uint16, uint32, float32, float64 when using TiffProfile.OME_TIFF
-    :param file: File target supported by tifffile TiffWriter, e.g. path to file (str) or binary stream.
+    :param file: File target supported by tifffile TiffWriter, e.g. path to file (str, pathlib.Path) or binary stream.
     :param image_name: Image name for OME-TIFF images. If True, the image name is determined using the DataArray name or
         the file name (in that order); if False, the image name is not set. If None, defaults to the behavior for True
         for named DataArrays and when the file path is provided, and to the behavior of False otherwise. Only relevant
@@ -141,6 +142,7 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Un
     :param pixel_size: Planar (x/y) size of one pixel, in micrometer.
     :param pixel_depth: Depth (z size) of one pixel, in micrometer. Only relevant when writing OME-TIFF files, any value
         other than None will raise a warning for other TIFF profiles.
+    :param software: Name of the software used to create the file. Must be 7-bit ASCII. Saved with the first page only.
     :param ome_xml_fun: Function that will be used for generating the OME-XML header. See the default implementation for
         reference of the required signature. Only relevant when writing OME-TIFF files, ignored otherwise.
     :param ome_xml_kwargs: Optional arguments that are passed to the ome_xml_fun function. Only relevant when writing
@@ -148,25 +150,27 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Un
     """
     # file
     if isinstance(file, str):
-        if not file.endswith('.tiff'):
+        file = Path(file)
+    if isinstance(file, Path):
+        if not file.suffix.lower() == '.tiff':
             warnings.warn('The specified TIFF file name does not end with .tiff: {}'.format(file))
         if profile == TiffProfile.OME_TIFF:
-            if not file.endswith('.ome.tiff'):
+            if not file.name.lower().endswith('.ome.tiff'):
                 warnings.warn('The specified OME-TIFF file name does not end with .ome.tiff: {}'.format(file))
         else:
-            if file.endswith('.ome.tiff'):
+            if file.name.lower().endswith('.ome.tiff'):
                 warnings.warn('The specified non-OME-TIFF file name ends with .ome.tiff: {}'.format(file))
 
     # image name
     data_array_has_image_name = (_is_data_array(img) and img.name)
-    if image_name is None and (data_array_has_image_name or isinstance(file, str)) and profile == TiffProfile.OME_TIFF:
+    if image_name is None and (data_array_has_image_name or isinstance(file, Path)) and profile == TiffProfile.OME_TIFF:
         image_name = True
     if isinstance(image_name, bool):
         if image_name:
             if data_array_has_image_name:
                 image_name = img.name
-            elif isinstance(file, str):
-                image_name = os.path.basename(file)
+            elif isinstance(file, Path):
+                image_name = file.name
             else:
                 raise ValueError('Cannot determine image name from non-DataArray images written to unknown file names')
         else:
@@ -257,7 +261,6 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Un
                 raise ValueError('Cannot determine channel names from non-DataArray image')
             if channel_axis is None:
                 raise ValueError('Cannot determine channel names from DataArrays without a channel dimension')
-            img: xr.DataArray = img
             channel_names = img.coords[img.dims[channel_axis]].values
         else:
             channel_names = None
@@ -301,10 +304,12 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Un
 
     # write image
     byte_order = '>' if big_endian else '<'
-    with TiffWriter(file, imagej=(profile == TiffProfile.IMAGEJ), bigtiff=big_tiff, byteorder=byte_order) as writer:
+    imagej = (profile == TiffProfile.IMAGEJ)
+    metadata = None if profile == TiffProfile.OME_TIFF else {}
+    with TiffWriter(file, bigtiff=big_tiff, byteorder=byte_order, imagej=imagej) as writer:
         # set photometric to 'MINISBLACK' to not treat three-channel images as RGB
-        writer.save(img, photometric='MINISBLACK', compress=compression, description=description, datetime=image_date,
-                    resolution=resolution)
+        writer.save(data=img, photometric='MINISBLACK', compress=compression, description=description,
+                    datetime=image_date, resolution=resolution, software=software, metadata=metadata)
 
 
 def _is_data_array(img) -> bool:

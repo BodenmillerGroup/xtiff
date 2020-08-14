@@ -5,7 +5,7 @@ with open('README.md', 'r') as readme_file:
 
 setup(
     name='xtiff',
-    version='0.6.1',
+    version='0.6.2',
     description='A tiny Python 3 library for writing multi-channel TIFF stacks',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -27,8 +27,11 @@ setup(
     py_modules=['xtiff'],
     install_requires=[
         'numpy',
-        'tifffile',
+        'tifffile>=2020.6.3,!=2020.7.17',
     ],
+    extras_require={
+        'xtiff_support': ['xtiff'],
+    },
     python_requires='>=3.7',
     zip_safe=True,
 )
