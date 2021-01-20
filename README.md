@@ -69,6 +69,7 @@ minimum.
 2020-01-23 v0.6.0 - Switched to full XML tree for OME-XML generation  
 2020-01-23 v0.6.1 - Small bug fix in dimension checking  
 2020-08-14 v0.6.2 - Fixed tifffile compatibility, added software parameter  
+2021-01-20 v0.6.3 - Fixed OME-XML encoding issue [#4](https://github.com/BodenmillerGroup/xtiff/issues/4)
 
 ## License
 
