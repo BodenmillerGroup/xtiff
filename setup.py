@@ -34,7 +34,7 @@ setup(
         'Topic :: Scientific/Engineering :: Image Processing',
     ],
     license='MIT',
-    python_requires='>=3.7',
+    python_requires='>=3.8',
     install_requires=install_requires,
     setup_requires=['setuptools_scm'],
 )

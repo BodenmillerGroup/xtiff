@@ -20,7 +20,7 @@ supported, enabling the naming of channels.
 
 ## Requirements
 
-This package requires Python 3.7 or later.
+This package requires Python 3.8 or later.
 
 Python package dependencies are listed in [requirements.txt](https://github.com/BodenmillerGroup/xtiff/blob/main/requirements.txt).
 
@@ -37,12 +37,10 @@ Install xtiff and its dependencies with:
 
 The package provides the following main function for writing TIFF files:
 
-```python3
-to_tiff(img, file, image_name=None, image_date=None, channel_names=None, description=None,
-        profile=TiffProfile.OME_TIFF, big_endian=None, big_tiff=None, big_tiff_threshold=4261412864,
-        compression_type=None, compression_level=0, pixel_size=None, pixel_depth=None,
-        software='xtiff', ome_xml_fun=get_ome_xml, **ome_xml_kwargs):
-```
+    to_tiff(img, file, image_name=None, image_date=None, channel_names=None, description=None,
+            profile=TiffProfile.OME_TIFF, big_endian=None, big_tiff=None, big_tiff_threshold=4261412864,
+            compression_type=None, compression_level=0, pixel_size=None, pixel_depth=None,
+            software='xtiff', ome_xml_fun=get_ome_xml, **ome_xml_kwargs):
 
 In addition, `get_ome_xml()` is provided as the default OME-XML-generating function.
 
