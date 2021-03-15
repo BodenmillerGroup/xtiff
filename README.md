@@ -22,7 +22,7 @@ supported, enabling the naming of channels.
 
 This package requires Python 3.8 or later.
 
-Python package dependencies are listed in [requirements.txt](https://github.com/BodenmillerGroup/xtiff/blob/main/requirements.txt).
+Python package dependencies are listed in [requirements.txt](https://github.com/BodenmillerGroup/xtiff/blob/master/requirements.txt).
 
 Using virtual environments is strongly recommended.
 
@@ -76,12 +76,12 @@ Created and maintained by Jonas Windhager [jonas.windhager@uzh.ch](mailto:jonas.
 
 ## Contributing
 
-[Contributing](https://github.com/BodenmillerGroup/xtiff/blob/main/CONTRIBUTING.md)
+[Contributing](https://github.com/BodenmillerGroup/xtiff/blob/master/CONTRIBUTING.md)
 
 ## Changelog
 
-[Changelog](https://github.com/BodenmillerGroup/xtiff/blob/main/CHANGELOG.md)
+[Changelog](https://github.com/BodenmillerGroup/xtiff/blob/master/CHANGELOG.md)
 
 ## License
 
-[MIT](https://github.com/BodenmillerGroup/xtiff/blob/main/LICENSE.md)
+[MIT](https://github.com/BodenmillerGroup/xtiff/blob/master/LICENSE.md)
