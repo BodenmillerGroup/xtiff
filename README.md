@@ -76,12 +76,12 @@ Created and maintained by Jonas Windhager [jonas.windhager@uzh.ch](mailto:jonas.
 
 ## Contributing
 
-[Contributing](CONTRIBUTING.md)
+[Contributing](https://github.com/BodenmillerGroup/xtiff/blob/main/CONTRIBUTING.md)
 
 ## Changelog
 
-[Changelog](CHANGELOG.md)
+[Changelog](https://github.com/BodenmillerGroup/xtiff/blob/main/CHANGELOG.md)
 
 ## License
 
-[MIT](LICENSE.md)
+[MIT](https://github.com/BodenmillerGroup/xtiff/blob/main/LICENSE.md)
