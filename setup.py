@@ -1,37 +1,40 @@
-from setuptools import setup
+#!/usr/bin/env python
+from setuptools import find_packages, setup
+from os import path
 
-with open('README.md', 'r') as readme_file:
-    long_description = readme_file.read()
+this_directory = path.abspath(path.dirname(__file__))
+with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
+
+install_requires = []
+with open(path.join(this_directory, 'requirements.txt'), encoding='utf-8') as f:
+    for line in f:
+        line = line.strip()
+        if not line.startswith('#'):
+            install_requires.append(line)
 
 setup(
     name='xtiff',
-    version='0.6.4',
+    use_scm_version={'write_to': "xtiff/_version.py"},
     description='A tiny Python 3 library for writing multi-channel TIFF stacks',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/BodenmillerGroup/xtiff',
     author='Jonas Windhager',
     author_email='jonas.windhager@uzh.ch',
-    license='MIT',
+    url='https://github.com/BodenmillerGroup/xtiff',
+    packages=find_packages(),
     classifiers=[
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: MIT License',
+        'Natural Language :: English',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Topic :: Scientific/Engineering :: Bio-Informatics',
+        'Topic :: Scientific/Engineering :: Image Processing',
     ],
-    keywords='xarray ome tiff',
-    project_urls={
-        'Source': 'https://github.com/BodenmillerGroup/xtiff',
-        'Tracker': 'https://github.com/BodenmillerGroup/xtiff/issues',
-    },
-    py_modules=['xtiff'],
-    install_requires=[
-        'numpy',
-        'tifffile>=2020.6.3,!=2020.7.17',
-    ],
-    extras_require={
-        'xtiff_support': ['xtiff'],
-    },
+    license='MIT',
     python_requires='>=3.7',
-    zip_safe=True,
+    install_requires=install_requires,
+    setup_requires=['setuptools_scm'],
 )

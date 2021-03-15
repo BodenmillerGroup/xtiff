@@ -8,13 +8,11 @@ from enum import Enum
 from io import BytesIO
 from pathlib import Path
 from tifffile import TiffWriter
-from typing import Optional, Sequence, Union
+from typing import Any, Optional, Sequence, Union
 
-# noinspection PyPep8Naming
-import xml.etree.ElementTree as ET
+from xtiff.ome import get_ome_xml
 
 try:
-    # noinspection PyPackageRequirements
     import xarray as xr
 except ImportError:
     xr = None
@@ -24,69 +22,6 @@ class TiffProfile(Enum):
     TIFF = 1
     IMAGEJ = 2
     OME_TIFF = 3
-
-
-OME_TYPES = {
-    np.bool: 'bool',
-    np.int8().dtype: 'int8',
-    np.int16().dtype: 'int16',
-    np.int32().dtype: 'int32',
-    np.uint8().dtype: 'uint8',
-    np.uint16().dtype: 'uint16',
-    np.uint32().dtype: 'uint32',
-    np.float32().dtype: 'float',
-    np.float64().dtype: 'double',
-}
-
-
-# noinspection PyUnusedLocal
-def get_ome_xml(img: np.ndarray, image_name: Optional[str], channel_names: Optional[Sequence[str]], big_endian: bool,
-                pixel_size: Optional[float], pixel_depth: Optional[float], **ome_xml_kwargs) -> ET.ElementTree:
-    size_t, size_z, size_c, size_y, size_x, size_s = img.shape
-    if channel_names is not None:
-        assert len(channel_names) == size_c
-    if pixel_size is not None:
-        assert pixel_size > 0.
-    if pixel_depth is not None:
-        assert pixel_depth > 0
-    ome_namespace = 'http://www.openmicroscopy.org/Schemas/OME/2016-06'
-    ome_schema_location = 'http://www.openmicroscopy.org/Schemas/OME/2016-06/ome.xsd'
-    ome_element = ET.Element('OME', attrib={
-        'xmlns': ome_namespace,
-        'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
-        'xsi:schemaLocation': ' '.join((ome_namespace, ome_schema_location))
-    })
-    image_element = ET.SubElement(ome_element, 'Image', attrib={
-        'ID': 'Image:0',
-    })
-    if image_name is not None:
-        image_element.set('Name', image_name)
-    pixels_element = ET.SubElement(image_element, 'Pixels', attrib={
-        'ID': 'Pixels:0',
-        'Type': OME_TYPES[img.dtype],
-        'SizeX': str(size_x),
-        'SizeY': str(size_y),
-        'SizeC': str(size_c),
-        'SizeZ': str(size_z),
-        'SizeT': str(size_t),
-        'DimensionOrder': 'XYCZT',
-        'Interleaved': 'true',
-        'BigEndian': 'true' if big_endian else 'false',
-    })
-    if pixel_size is not None:
-        pixels_element.set('PhysicalSizeX', str(pixel_size))
-        pixels_element.set('PhysicalSizeY', str(pixel_size))
-    if pixel_depth is not None:
-        pixels_element.set('PhysicalSizeZ', str(pixel_depth))
-    for channel_id in range(size_c):
-        channel_element = ET.SubElement(pixels_element, 'Channel', attrib={
-            'ID': 'Channel:0:{:d}'.format(channel_id),
-            'SamplesPerPixel': str(size_s),
-        })
-        if channel_names is not None and channel_names[channel_id]:
-            channel_element.set('Name', channel_names[channel_id])
-    tiff_data_element = ET.SubElement(pixels_element, 'TiffData')
-    return ET.ElementTree(element=ome_element)
 
 
 def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Union[str, datetime, None] = None,
@@ -222,7 +157,7 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Un
 
     # convert image to numpy array or xarray DataArray
     if not isinstance(img, np.ndarray) and not _is_data_array(img):
-        img: Union[np.ndarray, xr.DataArray] = np.asarray(img)
+        img = np.asarray(img)
     if profile == TiffProfile.IMAGEJ and img.dtype not in (np.uint8, np.uint16, np.float32):
         fmt = 'The ImageJ TIFF profile does not support the specified data type: {} (supported: uint8, uint16, float32)'
         raise ValueError(fmt.format(str(img.dtype)))
@@ -261,6 +196,7 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Un
                 raise ValueError('Cannot determine channel names from non-DataArray image')
             if channel_axis is None:
                 raise ValueError('Cannot determine channel names from DataArrays without a channel dimension')
+            img: Any  # to "help" PyCharm dealing with DataArrays
             channel_names = img.coords[img.dims[channel_axis]].values
         else:
             channel_names = None
