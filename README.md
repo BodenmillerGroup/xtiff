@@ -8,7 +8,7 @@
 ![GitHub issues](https://img.shields.io/github/issues/BodenmillerGroup/xtiff)
 ![GitHub pull requests](https://img.shields.io/github/issues-pr/BodenmillerGroup/xtiff)
 
-A tiny Python 3 library for writing multi-channel TIFF stacks.
+A tiny Python library for writing multi-channel TIFF stacks.
 
 The aim of this library is to provide an easy way to write multi-channel image stacks for external visualization and
 analysis. It acts as an interface to the popular [tifffile](https://www.lfd.uci.edu/~gohlke/) package and supports
@@ -20,7 +20,7 @@ supported, enabling the naming of channels.
 
 ## Requirements
 
-This package requires Python 3.8 or later.
+This package requires Python 3.7 or later.
 
 Python package dependencies are listed in [requirements.txt](https://github.com/BodenmillerGroup/xtiff/blob/master/requirements.txt).
 
