@@ -27,7 +27,7 @@ class TiffProfile(Enum):
 def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Union[str, datetime, None] = None,
             channel_names: Union[Sequence[str], bool, None] = None, description: Optional[str] = None,
             profile: TiffProfile = TiffProfile.OME_TIFF, big_endian: Optional[bool] = None,
-            big_tiff: Optional[bool] = None, big_tiff_threshold: int = 2 ** 32 - 2 ** 25,
+            big_tiff: Optional[bool] = None, big_tiff_threshold: int = 2 ** 32 - 2 ** 25, interleaved: bool = True,
             compression_type: Optional[str] = None, compression_level: int = 0,
             pixel_size: Optional[float] = None, pixel_depth: Optional[float] = None,
             software: str = 'xtiff', ome_xml_fun=get_ome_xml, **ome_xml_kwargs) -> None:
@@ -68,6 +68,8 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Un
     :param big_tiff: If True, enables support for writing files larger than 4GB. Not supported for TiffProfile.IMAGEJ.
     :param big_tiff_threshold: Threshold for enabling BigTIFF support when big_tiff is set to None, in bytes. Defaults
         to 4GB, minus 32MB for metadata.
+    :param interleaved: If True, OME-TIFF images are saved as interleaved (this only affects OME-XML metadata). Always
+        True for RGB(A) images (i.e., S=3 or 4) - a warning will be raised if explicitly set to False for RGB(A) images.
     :param compression_type: Compression algorithm, see tifffile.TIFF.COMPRESSION() for available values. Compression is
         not supported for TiffProfile.IMAGEJ. Note: Compression prevents from memory-mapping images and should therefore
         be avoided when images are compressed externally, e.g. when they are stored in compressed archives.
@@ -179,6 +181,10 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Un
         img_shape = (img.shape[0], img.shape[1], img.shape[2], img.shape[3], img.shape[4], 1)
     elif img.ndim == 6:  # TZCYXS
         channel_axis = 2
+        if img.shape[-1] > 0 and not interleaved:
+            interleaved = True
+            if profile == TiffProfile.OME_TIFF:
+                warnings.warn('RGB(A) OME-TIFF images must be saved as interleaved, ignoring interleaved parameter')
     else:
         raise ValueError('Unsupported number of dimensions: {:d} (supported: 2, 3, 4, 5, 6)'.format(img.ndim))
     size_t, size_z, size_c, size_y, size_x, size_s = img_shape
@@ -234,7 +240,7 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Un
         if ome_xml_fun is None:
             raise ValueError('No function provided for generating the OME-XML')
         ome_xml = ome_xml_fun(img, image_name, channel_names, big_endian, pixel_size, pixel_depth,
-                              interleaved=(size_s > 1), **ome_xml_kwargs)
+                              interleaved=interleaved, **ome_xml_kwargs)
         with BytesIO() as description_buffer:
             ome_xml.write(description_buffer, encoding='ascii', xml_declaration=True)
             description = description_buffer.getvalue().decode('ascii')
