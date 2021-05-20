@@ -181,7 +181,7 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Un
         img_shape = (img.shape[0], img.shape[1], img.shape[2], img.shape[3], img.shape[4], 1)
     elif img.ndim == 6:  # TZCYXS
         channel_axis = 2
-        if img.shape[-1] > 0 and not interleaved:
+        if img.shape[-1] > 1 and not interleaved:
             interleaved = True
             if profile == TiffProfile.OME_TIFF:
                 warnings.warn('RGB(A) OME-TIFF images must be saved as interleaved, ignoring interleaved parameter')
