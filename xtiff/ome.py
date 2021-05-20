@@ -16,8 +16,12 @@ OME_TYPES = {
 }
 
 
+# The "interleaved" argument was added in version 0.7.2. To not introduce breaking changes, it is a keyword-only
+# argument and can as such be handled by ome_xml_kwargs in third-party get_ome_xml implementations that do not (yet)
+# support this argument (e.g., imctools).
 def get_ome_xml(img: np.ndarray, image_name: Optional[str], channel_names: Optional[Sequence[str]], big_endian: bool,
-                pixel_size: Optional[float], pixel_depth: Optional[float], **ome_xml_kwargs) -> ElementTree.ElementTree:
+                pixel_size: Optional[float], pixel_depth: Optional[float], *, interleaved: bool = False,
+                **ome_xml_kwargs) -> ElementTree.ElementTree:
     size_t, size_z, size_c, size_y, size_x, size_s = img.shape
     if channel_names is not None:
         assert len(channel_names) == size_c
@@ -46,7 +50,7 @@ def get_ome_xml(img: np.ndarray, image_name: Optional[str], channel_names: Optio
         'SizeZ': str(size_z),
         'SizeT': str(size_t),
         'DimensionOrder': 'XYCZT',
-        'Interleaved': 'true',
+        'Interleaved': 'true' if interleaved else 'false',
         'BigEndian': 'true' if big_endian else 'false',
     })
     if pixel_size is not None:

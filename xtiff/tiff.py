@@ -233,7 +233,8 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Un
     if profile == TiffProfile.OME_TIFF:
         if ome_xml_fun is None:
             raise ValueError('No function provided for generating the OME-XML')
-        ome_xml = ome_xml_fun(img, image_name, channel_names, big_endian, pixel_size, pixel_depth, **ome_xml_kwargs)
+        ome_xml = ome_xml_fun(img, image_name, channel_names, big_endian, pixel_size, pixel_depth,
+                              interleaved=(size_s > 1), **ome_xml_kwargs)
         with BytesIO() as description_buffer:
             ome_xml.write(description_buffer, encoding='ascii', xml_declaration=True)
             description = description_buffer.getvalue().decode('ascii')
