@@ -55,9 +55,12 @@ def get_ome_xml(img: np.ndarray, image_name: Optional[str], channel_names: Optio
     })
     if pixel_size is not None:
         pixels_element.set('PhysicalSizeX', str(pixel_size))
+        pixels_element.set('PhysicalSizeXUnit', 'µm')
         pixels_element.set('PhysicalSizeY', str(pixel_size))
+        pixels_element.set('PhysicalSizeYUnit', 'µm')
     if pixel_depth is not None:
         pixels_element.set('PhysicalSizeZ', str(pixel_depth))
+        pixels_element.set('PhysicalSizeZUnit', 'µm')
     for channel_id in range(size_c):
         channel_element = ElementTree.SubElement(pixels_element, 'Channel', attrib={
             'ID': 'Channel:0:{:d}'.format(channel_id),
