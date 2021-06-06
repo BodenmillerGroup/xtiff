@@ -241,9 +241,12 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Un
             raise ValueError('No function provided for generating the OME-XML')
         ome_xml = ome_xml_fun(img, image_name, channel_names, big_endian, pixel_size, pixel_depth,
                               interleaved=interleaved, **ome_xml_kwargs)
+        # While TIFF technically only supports ASCII, OME-XML requires UTF-8 encoding. In particular, the ASCII standard
+        # does not support the micron (μ) character, which is used in PhysicalSizeX/Y/Z attributes. Therefore, the
+        # OME-XML Description Tag is always encoded as UTF-8.
         with BytesIO() as description_buffer:
-            ome_xml.write(description_buffer, encoding='ascii', xml_declaration=True)
-            description = description_buffer.getvalue().decode('ascii')
+            ome_xml.write(description_buffer, encoding='utf-8', xml_declaration=True)
+            description = description_buffer.getvalue()  # do not decode byte string to skip tifffile's ASCII check
 
     # write image
     byte_order = '>' if big_endian else '<'
