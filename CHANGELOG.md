@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.7.7] - 2021-09-21
+
+Expose xtiff.TiffProfile ([#9](https://github.com/BodenmillerGroup/xtiff/issues/9))
+
 ## [v0.7.6] - 2021-06-06
 
 Encode OME-XML as UTF-8
@@ -86,6 +90,7 @@ Expose OME-XML to user
 Initial release
 
 
+[v0.7.7]: https://github.com/BodenmillerGroup/xtiff/compare/v0.7.6...v0.7.7
 [v0.7.6]: https://github.com/BodenmillerGroup/xtiff/compare/v0.7.5...v0.7.6
 [v0.7.5]: https://github.com/BodenmillerGroup/xtiff/compare/v0.7.4...v0.7.5
 [v0.7.4]: https://github.com/BodenmillerGroup/xtiff/compare/v0.7.3...v0.7.4
