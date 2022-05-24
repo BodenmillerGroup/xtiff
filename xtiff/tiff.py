@@ -254,7 +254,7 @@ def to_tiff(img, file, image_name: Union[str, bool, None] = None, image_date: Un
     metadata = None if profile == TiffProfile.OME_TIFF else {}
     with TiffWriter(file, bigtiff=big_tiff, byteorder=byte_order, imagej=imagej) as writer:
         # set photometric to 'MINISBLACK' to not treat three-channel images as RGB
-        writer.save(data=img, photometric='MINISBLACK', compress=compression, description=description,
+        writer.write(data=img, photometric='MINISBLACK', compression=compression, description=description,
                     datetime=image_date, resolution=resolution, software=software, metadata=metadata)
 
 
