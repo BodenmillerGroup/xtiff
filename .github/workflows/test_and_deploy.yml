@@ -1,0 +1,67 @@
+name: test-and-deploy
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+jobs:
+  test:
+    name: Test ${{ matrix.platform }} py${{ matrix.python-version }}
+    runs-on: ${{ matrix.platform }}
+    strategy:
+      matrix:
+        platform:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+        python-version:
+          - 3.7
+          - 3.8
+          - 3.9
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade -r test/requirements.txt
+          pip install --upgrade ".[all]"
+      - name: Test with pytest
+        run: |
+          pytest --cov=./
+      - name: Coverage
+        uses: codecov/codecov-action@v1
+  deploy:
+    name: Deploy
+    needs:
+      - test
+    runs-on: ubuntu-latest
+    if: contains(github.ref, 'tags')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Python 3
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.x
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade setuptools setuptools_scm wheel twine
+      - name: Build and publish
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TWINE_API_KEY }}
+        run: |
+          git tag
+          python setup.py sdist bdist_wheel
+          twine upload dist/*
