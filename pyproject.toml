@@ -1,0 +1,6 @@
+[build-system]
+requires = ["setuptools>=42", "setuptools_scm", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+write_to = "xtiff/_version.py"

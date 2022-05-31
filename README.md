@@ -20,9 +20,7 @@ supported, enabling the naming of channels.
 
 ## Requirements
 
-This package requires Python 3.7 or later.
-
-Python package dependencies are listed in [requirements.txt](https://github.com/BodenmillerGroup/xtiff/blob/master/requirements.txt).
+This package requires Python 3.7 or newer.
 
 Using virtual environments is strongly recommended.
 
