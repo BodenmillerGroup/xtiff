@@ -20,7 +20,7 @@ supported, enabling the naming of channels.
 
 ## Requirements
 
-This package requires Python 3.7 or newer.
+This package requires Python 3.8 or newer.
 
 Using virtual environments is strongly recommended.
 
