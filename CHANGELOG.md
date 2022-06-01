@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.7.8] - 2022-06-01
+
+Maintenance release (upgrade to tifffile>=2022.4.22, drop support for Python 3.7)
+
 ## [v0.7.7] - 2021-09-21
 
 Expose xtiff.TiffProfile ([#9](https://github.com/BodenmillerGroup/xtiff/issues/9))
