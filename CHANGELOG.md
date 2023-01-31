@@ -98,6 +98,8 @@ Expose OME-XML to user
 Initial release
 
 
+[v0.7.9]: https://github.com/BodenmillerGroup/xtiff/compare/v0.7.8...v0.7.9
+[v0.7.8]: https://github.com/BodenmillerGroup/xtiff/compare/v0.7.7...v0.7.8
 [v0.7.7]: https://github.com/BodenmillerGroup/xtiff/compare/v0.7.6...v0.7.7
 [v0.7.6]: https://github.com/BodenmillerGroup/xtiff/compare/v0.7.5...v0.7.6
 [v0.7.5]: https://github.com/BodenmillerGroup/xtiff/compare/v0.7.4...v0.7.5
