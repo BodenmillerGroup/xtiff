@@ -4,7 +4,7 @@
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/xtiff)
 ![PyPI - License](https://img.shields.io/pypi/l/xtiff)
 ![Codecov](https://img.shields.io/codecov/c/github/BodenmillerGroup/xtiff)
-![GitHub Workflow Status (branch)](https://img.shields.io/github/workflow/status/BodenmillerGroup/xtiff/test-and-deploy/master)
+![GitHub Workflow Status (branch)](https://img.shields.io/github/actions/workflow/status/BodenmillerGroup/xtiff/build.yml)
 ![GitHub issues](https://img.shields.io/github/issues/BodenmillerGroup/xtiff)
 ![GitHub pull requests](https://img.shields.io/github/issues-pr/BodenmillerGroup/xtiff)
 
@@ -35,11 +35,11 @@ Install xtiff and its dependencies with:
 
 The package provides the following main function for writing TIFF files:
 
-    to_tiff(img, file, image_name=None, image_date=None, channel_names=None, description=None, 
-            profile=TiffProfile.OME_TIFF, big_endian=None, big_tiff=None, big_tiff_threshold=4261412864, 
-            compression_type=None, compression_level=0, pixel_size=None, pixel_depth=None, 
+    to_tiff(img, file, image_name=None, image_date=None, channel_names=None, description=None,
+            profile=TiffProfile.OME_TIFF, big_endian=None, big_tiff=None, big_tiff_threshold=4261412864,
+            compression_type=None, compression_level=0, pixel_size=None, pixel_depth=None,
             interleaved=True, software='xtiff', ome_xml_fun=get_ome_xml, **ome_xml_kwargs)
-    
+
 
     img: The image to write, as xarray DataArray or numpy-compatible data structure.
         Supported shapes:

@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Optional, Sequence, Union
+from typing import Optional, Sequence, Tuple, Union
 
 import numpy as np
 import tifffile
@@ -159,6 +159,7 @@ def to_tiff(
                 )
         else:
             image_name = None
+    assert not isinstance(image_name, bool)
     if isinstance(image_name, str) and len(image_name) == 0:
         raise ValueError("Image name is empty")
     if image_name is not None and profile != TiffProfile.OME_TIFF:
@@ -197,7 +198,7 @@ def to_tiff(
             "The specified compression level is not between 0 and 9: "
             f"{compression_level:d}"
         )
-    compression = compression_level
+    compression: Union[int, Tuple[str, int]] = compression_level
     if compression_type is not None:
         compression = (compression_type, compression_level)
     if profile == TiffProfile.IMAGEJ and compression != 0:
@@ -205,10 +206,8 @@ def to_tiff(
             "The ImageJ TIFF profile does not support compression, ignoring compression"
         )
         compression = 0
-    assert (
-        isinstance(compression, int)
-        or isinstance(compression, tuple)
-        and len(compression) == 2
+    assert isinstance(compression, int) or (
+        isinstance(compression, tuple) and len(compression) == 2
     )
 
     # resolution
@@ -307,10 +306,10 @@ def to_tiff(
                     "Cannot determine channel names from DataArrays "
                     "without a channel dimension"
                 )
-            img: Any  # to "help" PyCharm dealing with DataArrays
             channel_names = img.coords[img.dims[channel_axis]].values
         else:
             channel_names = None
+    assert not isinstance(channel_names, bool)
     if channel_names is not None and len(channel_names) != size_c:
         raise ValueError(
             f"Invalid number of channel names: {len(channel_names):d} "
@@ -373,14 +372,13 @@ def to_tiff(
         # Description Tag is always encoded as UTF-8.
         with BytesIO() as description_buffer:
             ome_xml.write(description_buffer, encoding="utf-8", xml_declaration=True)
-            description = (
-                description_buffer.getvalue()
-            )  # do not decode byte string to skip tifffile's ASCII check
+            # do not decode byte string to skip tifffile's ASCII check
+            description = description_buffer.getvalue()  # type: ignore
 
     # write image
     byte_order = ">" if big_endian else "<"
     imagej = profile == TiffProfile.IMAGEJ
-    metadata = None if profile == TiffProfile.OME_TIFF else {}
+    metadata: Optional[dict] = None if profile == TiffProfile.OME_TIFF else {}
     with TiffWriter(
         file, bigtiff=big_tiff, byteorder=byte_order, imagej=imagej
     ) as writer:
