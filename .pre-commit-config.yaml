@@ -38,3 +38,6 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies: [types-requests, types-PyYAML]
+ci:
+  autoupdate_branch: develop
+  skip: [flake8, mypy]
