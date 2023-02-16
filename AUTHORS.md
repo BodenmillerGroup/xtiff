@@ -1,5 +1,5 @@
 # Authors
 
-The `xtiff` package was developed by [Jonas Windhager](mailto:jonas@windhager.io).
+Created and maintained by [Jonas Windhager](mailto:jonas@windhager.io) until February 2023.
 
-The `xtiff` package is currently maintained by [Milad Adibi](mailto:milad.adibi@uzh.ch).
+Maintained by [Milad Adibi](mailto:milad.adibi@uzh.ch) from February 2023.
