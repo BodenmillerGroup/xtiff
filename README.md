@@ -137,7 +137,7 @@ minimum.
 
 ## Authors
 
-Created and maintained by Jonas Windhager [jonas.windhager@uzh.ch](mailto:jonas.windhager@uzh.ch)
+[Authors](https://github.com/BodenmillerGroup/xtiff/blob/master/AUTHORS.md)
 
 ## Contributing
 
